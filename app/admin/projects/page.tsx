@@ -1,16 +1,20 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus,
   Search,
   Edit2,
   Trash2,
   AlertTriangle,
+  Filter,
+  Layers,
+  User,
 } from 'lucide-react'
 import { createClient, Project, Engineer } from '@/lib/supabase'
 import ProjectForm from '@/components/admin/ProjectForm'
+import CustomSelect from '@/components/admin/CustomSelect'
 
 const statusLabels: { [key: string]: string } = {
   pending: 'Chờ xử lý',
@@ -53,8 +57,14 @@ export default function ProjectsPage() {
   const [engineers, setEngineers] = useState<Engineer[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [filterStatus, setFilterStatus] = useState('all')
+  const [filterService, setFilterService] = useState('all')
+  const [filterEngineer, setFilterEngineer] = useState('all')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
+  const [userRole, setUserRole] = useState<string>('engineer')
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean, projectId: string | null }>({ isOpen: false, projectId: null })
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   const supabase = createClient()
 
@@ -65,10 +75,31 @@ export default function ProjectsPage() {
 
   const fetchProjects = async () => {
     try {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .order('created_at', { ascending: false })
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const role = user.user_metadata?.role || 'engineer'
+      setUserRole(role)
+
+      let query = supabase.from('projects').select('*').order('created_at', { ascending: false })
+
+      if (role !== 'admin') {
+        const { data: engineerData } = await supabase
+          .from('engineers')
+          .select('id')
+          .eq('user_id', user.id)
+          .single()
+
+        if (engineerData) {
+          query = query.eq('engineer_id', engineerData.id)
+        } else {
+          setProjects([])
+          setIsLoading(false)
+          return
+        }
+      }
+
+      const { data, error } = await query
 
       if (error) throw error
       setProjects(data || [])
@@ -100,28 +131,42 @@ export default function ProjectsPage() {
   // Kiểm tra hồ sơ có trễ không (quá 30 ngày từ ngày bắt đầu)
   const isLate = (project: Project) => {
     if (project.status === 'completed' || project.status === 'cancelled') return false
-    
+
     const startDate = new Date(project.start_date || project.created_at)
     const today = new Date()
     const diffTime = today.getTime() - startDate.getTime()
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    
+
     return diffDays > 30
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Bạn có chắc muốn xóa hồ sơ này?')) return
+  const showToast = (message: string) => {
+    setSuccessMessage(message)
+    setTimeout(() => setSuccessMessage(null), 3000)
+  }
+
+  const confirmDelete = (id: string) => {
+    setDeleteConfirmation({ isOpen: true, projectId: id })
+  }
+
+  const handleDelete = async () => {
+    if (!deleteConfirmation.projectId) return
 
     try {
       const { error } = await supabase
         .from('projects')
         .delete()
-        .eq('id', id)
+        .eq('id', deleteConfirmation.projectId)
 
       if (error) throw error
+
+      setDeleteConfirmation({ isOpen: false, projectId: null })
       fetchProjects()
+
+      showToast('Đã xóa hồ sơ thành công!')
     } catch (error) {
       console.error('Error deleting project:', error)
+      alert("Có lỗi xảy ra khi xóa hồ sơ.")
     }
   }
 
@@ -135,10 +180,14 @@ export default function ProjectsPage() {
     setIsFormOpen(true)
   }
 
-  const filteredProjects = projects.filter(project =>
-    project.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    project.code.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredProjects = projects.filter(project => {
+    const matchesSearch = project.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      project.code.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesStatus = filterStatus === 'all' || project.status === filterStatus
+    const matchesService = filterService === 'all' || project.service_type === filterService
+    const matchesEngineer = filterEngineer === 'all' || project.engineer_id === filterEngineer
+    return matchesSearch && matchesStatus && matchesService && matchesEngineer
+  })
 
   if (isLoading) {
     return (
@@ -152,17 +201,19 @@ export default function ProjectsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold text-secondary">Quản lý hồ sơ</h1>
-        <button
-          onClick={handleAddNew}
-          className="flex items-center justify-center gap-2 bg-accent hover:bg-orange-600 text-white px-4 py-2.5 rounded-lg transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          Thêm hồ sơ
-        </button>
+        {userRole === 'admin' && (
+          <button
+            onClick={handleAddNew}
+            className="flex items-center justify-center gap-2 bg-accent hover:bg-orange-600 text-white px-4 py-2.5 rounded-lg transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            Thêm hồ sơ
+          </button>
+        )}
       </div>
 
-      {/* Search */}
-      <div className="flex gap-4">
+      {/* Search and Filters */}
+      <div className="flex flex-col lg:flex-row gap-4 mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
@@ -172,6 +223,41 @@ export default function ProjectsPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
           />
+        </div>
+        <div className="flex flex-wrap lg:flex-nowrap gap-3">
+          <CustomSelect
+            value={filterStatus}
+            onChange={setFilterStatus}
+            options={[
+              { value: 'all', label: 'Tất cả trạng thái' },
+              ...Object.entries(statusLabels).map(([value, label]) => ({ value, label }))
+            ]}
+            icon={<Filter className="w-4 h-4 text-gray-500" />}
+          />
+
+          <CustomSelect
+            value={filterService}
+            onChange={setFilterService}
+            options={[
+              { value: 'all', label: 'Tất cả dịch vụ' },
+              ...Object.entries(serviceLabels).map(([value, label]) => ({ value, label }))
+            ]}
+            icon={<Layers className="w-4 h-4 text-gray-500" />}
+          />
+
+          {userRole === 'admin' && (
+            <div className="min-w-[200px]">
+              <CustomSelect
+                value={filterEngineer}
+                onChange={setFilterEngineer}
+                options={[
+                  { value: 'all', label: 'Tất cả người thực hiện' },
+                  ...engineers.map(e => ({ value: e.id, label: e.name }))
+                ]}
+                icon={<User className="w-4 h-4 text-gray-500" />}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -260,12 +346,14 @@ export default function ProjectsPage() {
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
-                      <button
-                        onClick={() => handleDelete(project.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {userRole === 'admin' && (
+                        <button
+                          onClick={() => confirmDelete(project.id)}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </motion.tr>
@@ -285,9 +373,71 @@ export default function ProjectsPage() {
       <ProjectForm
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
-        onSuccess={fetchProjects}
+        onSuccess={() => {
+          fetchProjects()
+          showToast(editingProject ? 'Đã cập nhật hồ sơ thành công!' : 'Đã thêm hồ sơ thành công!')
+        }}
         editingProject={editingProject}
+        userRole={userRole}
       />
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteConfirmation.isOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/50"
+              onClick={() => setDeleteConfirmation({ isOpen: false, projectId: null })}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative bg-white rounded-xl shadow-xl w-full max-w-sm p-6 text-center"
+            >
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-6 h-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Xác nhận xóa</h3>
+              <p className="text-gray-500 mb-6 text-sm">
+                Bạn có chắc chắn muốn xóa hồ sơ này không? Hành động này không thể hoàn tác và tất cả thửa đất liên quan cũng sẽ bị xóa.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteConfirmation({ isOpen: false, projectId: null })}
+                  className="flex-1 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                >
+                  Xóa hồ sơ
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Success Notification */}
+      <AnimatePresence>
+        {successMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-6 right-6 z-[70] bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3"
+          >
+            <div className="w-2 h-2 bg-green-400 rounded-full" />
+            <span className="font-medium text-sm">{successMessage}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

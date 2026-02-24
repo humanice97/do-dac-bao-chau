@@ -54,20 +54,51 @@ export default function DashboardPage() {
 
   const isLate = (project: Project) => {
     if (project.status === 'completed' || project.status === 'cancelled') return false
-    
+
     const startDate = new Date(project.start_date || project.created_at)
     const today = new Date()
     const diffTime = today.getTime() - startDate.getTime()
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    
+
     return diffDays > 30
   }
 
   const fetchDashboardData = async () => {
     try {
-      const { data: projects, error } = await supabase
-        .from('projects')
-        .select('*')
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const role = user.user_metadata?.role || 'engineer'
+
+      let query = supabase.from('projects').select('*')
+
+      if (role !== 'admin') {
+        // Find engineer record for this user
+        const { data: engineerData, error: engineerError } = await supabase
+          .from('engineers')
+          .select('id')
+          .eq('user_id', user.id)
+          .single()
+
+        if (!engineerError && engineerData) {
+          query = query.eq('engineer_id', engineerData.id)
+        } else {
+          // If no engineer profile linked, return empty data for engineer
+          setStats({
+            totalProjects: 0,
+            totalRevenue: 0,
+            totalEngineerShare: 0,
+            pendingProjects: 0,
+            lateProjects: 0
+          })
+          setMonthlyData([])
+          setStatusData([])
+          setIsLoading(false)
+          return
+        }
+      }
+
+      const { data: projects, error } = await query
 
       if (error) throw error
 

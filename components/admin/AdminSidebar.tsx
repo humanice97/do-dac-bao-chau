@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -15,15 +15,26 @@ import {
 import { createClient } from '@/lib/supabase'
 
 const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', href: '/admin' },
-  { icon: FolderKanban, label: 'Hồ sơ', href: '/admin/projects' },
-  { icon: Users, label: 'Người thực hiện', href: '/admin/engineers' },
+  { icon: LayoutDashboard, label: 'Dashboard', href: '/admin', roles: ['admin', 'engineer'] },
+  { icon: FolderKanban, label: 'Hồ sơ', href: '/admin/projects', roles: ['admin', 'engineer'] },
+  { icon: Users, label: 'Người thực hiện', href: '/admin/engineers', roles: ['admin'] },
 ]
 
 export default function AdminSidebar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [userRole, setUserRole] = useState<string>('engineer')
   const pathname = usePathname()
   const supabase = createClient()
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user?.user_metadata?.role) {
+        setUserRole(user.user_metadata.role)
+      }
+    }
+    fetchUserRole()
+  }, [])
 
   const handleLogout = async () => {
     try {
@@ -46,9 +57,8 @@ export default function AdminSidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-secondary transform transition-transform duration-300 ${
-          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}
+        className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-secondary transform transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          }`}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
@@ -66,18 +76,17 @@ export default function AdminSidebar() {
 
           {/* Menu */}
           <nav className="flex-1 p-4 space-y-2">
-            {menuItems.map((item) => {
+            {menuItems.filter(item => item.roles.includes(userRole)).map((item) => {
               const isActive = pathname === item.href
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    isActive
-                      ? 'bg-accent text-white'
-                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                  }`}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
+                    ? 'bg-accent text-white'
+                    : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                    }`}
                 >
                   <item.icon className="w-5 h-5" />
                   <span>{item.label}</span>

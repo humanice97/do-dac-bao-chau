@@ -54,23 +54,32 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { session } } = await supabase.auth.getSession()
-
-  console.log('Middleware:', request.nextUrl.pathname, 'Session:', !!session)
+  const { data: { user } } = await supabase.auth.getUser()
 
   // Protect /admin routes
   if (request.nextUrl.pathname.startsWith('/admin')) {
     // Allow login page
     if (request.nextUrl.pathname === '/admin/login') {
-      if (session) {
+      if (user) {
         return NextResponse.redirect(new URL('/admin', request.url))
       }
       return response
     }
 
     // Redirect to login if not authenticated
-    if (!session) {
+    if (!user) {
       return NextResponse.redirect(new URL('/admin/login', request.url))
+    }
+
+    // RBAC: Check roles for specific routes
+    const role = user.user_metadata?.role || 'engineer'
+
+    // Only admins can access the engineers management page
+    if (request.nextUrl.pathname.startsWith('/admin/engineers')) {
+      if (role !== 'admin') {
+        // Redirect engineers to the projects page if they try to access engineers
+        return NextResponse.redirect(new URL('/admin/projects', request.url))
+      }
     }
   }
 

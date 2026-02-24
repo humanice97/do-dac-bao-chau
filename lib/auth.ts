@@ -23,8 +23,8 @@ export async function getSession() {
 
 export async function getUserRole() {
   const supabase = createClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  return session?.user?.user_metadata?.role || 'engineer'
+  const { data: { user } } = await supabase.auth.getUser()
+  return user?.user_metadata?.role || 'engineer'
 }
 
 export function isAdmin(role: string) {

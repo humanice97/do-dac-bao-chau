@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
-import { Plus, Search, Phone, Edit2, Trash2 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Plus, Search, Phone, Edit2, Trash2, AlertTriangle } from 'lucide-react'
 import { createClient, Engineer } from '@/lib/supabase'
 import EngineerForm from '@/components/admin/EngineerForm'
 
@@ -12,6 +12,8 @@ export default function EngineersPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingEngineer, setEditingEngineer] = useState<Engineer | null>(null)
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean, engineerId: string | null }>({ isOpen: false, engineerId: null })
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   const supabase = createClient()
 
@@ -35,19 +37,33 @@ export default function EngineersPage() {
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Bạn có chắc muốn xóa người thực hiện này?')) return
+  const showToast = (message: string) => {
+    setSuccessMessage(message)
+    setTimeout(() => setSuccessMessage(null), 3000)
+  }
+
+  const confirmDelete = (id: string) => {
+    setDeleteConfirmation({ isOpen: true, engineerId: id })
+  }
+
+  const handleDelete = async () => {
+    if (!deleteConfirmation.engineerId) return
 
     try {
       const { error } = await supabase
         .from('engineers')
         .delete()
-        .eq('id', id)
+        .eq('id', deleteConfirmation.engineerId)
 
       if (error) throw error
+
+      setDeleteConfirmation({ isOpen: false, engineerId: null })
       fetchEngineers()
+
+      showToast('Đã xóa người thực hiện thành công!')
     } catch (error) {
       console.error('Error deleting engineer:', error)
+      alert("Có lỗi xảy ra khi xóa người thực hiện.")
     }
   }
 
@@ -78,7 +94,7 @@ export default function EngineersPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold text-secondary">Quản lý người thực hiện</h1>
-        <button 
+        <button
           onClick={handleAddNew}
           className="flex items-center justify-center gap-2 bg-accent hover:bg-orange-600 text-white px-4 py-2.5 rounded-lg transition-colors"
         >
@@ -116,14 +132,14 @@ export default function EngineersPage() {
                 </span>
               </div>
               <div className="flex items-center gap-1">
-                <button 
+                <button
                   onClick={() => handleEdit(engineer)}
                   className="p-2 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => handleDelete(engineer.id)}
+                  onClick={() => confirmDelete(engineer.id)}
                   className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -155,9 +171,70 @@ export default function EngineersPage() {
       <EngineerForm
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
-        onSuccess={fetchEngineers}
+        onSuccess={() => {
+          fetchEngineers()
+          showToast(editingEngineer ? 'Cập nhật người thực hiện thành công!' : 'Thêm người thực hiện thành công!')
+        }}
         editingEngineer={editingEngineer}
       />
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteConfirmation.isOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/50"
+              onClick={() => setDeleteConfirmation({ isOpen: false, engineerId: null })}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative bg-white rounded-xl shadow-xl w-full max-w-sm p-6 text-center"
+            >
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-6 h-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Xác nhận xóa</h3>
+              <p className="text-gray-500 mb-6 text-sm">
+                Bạn có chắc chắn muốn xóa người thực hiện này không? Hành động này không thể hoàn tác.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteConfirmation({ isOpen: false, engineerId: null })}
+                  className="flex-1 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                >
+                  Xóa
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Success Notification */}
+      <AnimatePresence>
+        {successMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-6 right-6 z-[70] bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3"
+          >
+            <div className="w-2 h-2 bg-green-400 rounded-full" />
+            <span className="font-medium text-sm">{successMessage}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

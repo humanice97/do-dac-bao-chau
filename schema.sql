@@ -100,24 +100,100 @@ CREATE TRIGGER update_project_shares_trigger
 CREATE POLICY "Enable read access for all users" ON engineers
   FOR SELECT USING (true);
 
-CREATE POLICY "Enable insert for authenticated users only" ON engineers
-  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Enable insert for admins only" ON engineers
+  FOR INSERT WITH CHECK (
+    auth.role() = 'authenticated' AND 
+    (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin')
+  );
 
-CREATE POLICY "Enable update for authenticated users only" ON engineers
-  FOR UPDATE USING (auth.role() = 'authenticated');
+CREATE POLICY "Enable update for admins only" ON engineers
+  FOR UPDATE USING (
+    auth.role() = 'authenticated' AND 
+    (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin')
+  );
 
-CREATE POLICY "Enable delete for authenticated users only" ON engineers
-  FOR DELETE USING (auth.role() = 'authenticated');
+CREATE POLICY "Enable delete for admins only" ON engineers
+  FOR DELETE USING (
+    auth.role() = 'authenticated' AND 
+    (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin')
+  );
 
 -- RLS Policies for projects
-CREATE POLICY "Enable read access for all users" ON projects
-  FOR SELECT USING (true);
+CREATE POLICY "Enable read for admins or assigned engineers" ON projects
+  FOR SELECT USING (
+    (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin') OR
+    (engineer_id IN (SELECT id FROM engineers WHERE user_id = auth.uid()))
+  );
 
-CREATE POLICY "Enable insert for authenticated users only" ON projects
-  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Enable insert for admins only" ON projects
+  FOR INSERT WITH CHECK (
+    auth.role() = 'authenticated' AND 
+    (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin')
+  );
 
-CREATE POLICY "Enable update for authenticated users only" ON projects
-  FOR UPDATE USING (auth.role() = 'authenticated');
+CREATE POLICY "Enable update for admins or assigned engineers" ON projects
+  FOR UPDATE USING (
+    (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin') OR
+    (engineer_id IN (SELECT id FROM engineers WHERE user_id = auth.uid()))
+  );
 
-CREATE POLICY "Enable delete for authenticated users only" ON projects
-  FOR DELETE USING (auth.role() = 'authenticated');
+CREATE POLICY "Enable delete for admins only" ON projects
+  FOR DELETE USING (
+    auth.role() = 'authenticated' AND 
+    (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin')
+  );
+
+-- Create land_parcels table
+CREATE TABLE IF NOT EXISTS land_parcels (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  parcel_number TEXT,
+  map_sheet_number TEXT,
+  area NUMERIC,
+  land_type TEXT,
+  address_commune_ward TEXT,
+  address_district_city TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Enable RLS for land_parcels
+ALTER TABLE land_parcels ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for land_parcels
+CREATE POLICY "Enable read for admins or assigned engineers" ON land_parcels
+  FOR SELECT USING (
+    (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin') OR
+    (project_id IN (
+      SELECT id FROM projects WHERE engineer_id IN (
+        SELECT id FROM engineers WHERE user_id = auth.uid()
+      )
+    ))
+  );
+
+CREATE POLICY "Enable insert for admins or assigned engineers" ON land_parcels
+  FOR INSERT WITH CHECK (
+    auth.role() = 'authenticated' AND (
+      (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin') OR
+      (project_id IN (
+        SELECT id FROM projects WHERE engineer_id IN (
+          SELECT id FROM engineers WHERE user_id = auth.uid()
+        )
+      ))
+    )
+  );
+
+CREATE POLICY "Enable update for admins or assigned engineers" ON land_parcels
+  FOR UPDATE USING (
+    (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin') OR
+    (project_id IN (
+      SELECT id FROM projects WHERE engineer_id IN (
+        SELECT id FROM engineers WHERE user_id = auth.uid()
+      )
+    ))
+  );
+
+CREATE POLICY "Enable delete for admins only" ON land_parcels
+  FOR DELETE USING (
+    auth.role() = 'authenticated' AND 
+    (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin')
+  );

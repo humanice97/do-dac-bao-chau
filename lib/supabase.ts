@@ -36,3 +36,14 @@ export type Engineer = {
   user_id: string
   created_at: string
 }
+
+export type LandParcel = {
+  id: string
+  project_id: string
+  parcel_number: string
+  map_sheet_number: string
+  area: number
+  land_type: string
+  address_commune_ward: string
+  address_district_city: string
+}
