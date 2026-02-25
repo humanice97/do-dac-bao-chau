@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { format, parseISO } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { motion, AnimatePresence } from 'framer-motion'
 import { X, User, Phone, MapPin, FileText, DollarSign, Calendar as CalendarIcon, UserCircle, Layers, Activity, FileCheck, UploadCloud, Trash2 } from 'lucide-react'
 import { createClient, Project, Engineer, LandParcel } from '@/lib/supabase'
 
@@ -14,7 +13,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 
 interface ProjectFormProps {
@@ -44,6 +42,7 @@ const statusOptions = [
 const wardOptions = [
   'Xã Điện Bàn Tây',
   'Xã Gò Nổi',
+  'Phường An Thắng',
   'Phường Điện Bàn',
   'Phường Điện Bàn Bắc',
   'Phường Điện Bàn Đông'

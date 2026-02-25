@@ -80,7 +80,7 @@ export default function EngineerForm({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md w-full gap-0 p-0 sm:rounded-2xl rounded-t-2xl flex flex-col [&>button:last-child]:hidden">
+      <DialogContent className="sm:max-w-md overflow-hidden w-full gap-0 p-0 sm:rounded-2xl rounded-t-2xl flex flex-col [&>button:last-child]:hidden">
         <DialogHeader className="sticky top-0 z-20 bg-white px-4 sm:px-6 py-4 border-b border-gray-100 flex-shrink-0 flex flex-row items-center justify-between">
           <DialogTitle className="text-lg sm:text-xl font-bold text-secondary text-left mt-0">
             {editingEngineer ? 'Chỉnh sửa kỹ sư' : 'Thêm kỹ sư mới'}

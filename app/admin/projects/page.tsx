@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { createClient, Project, Engineer } from '@/lib/supabase'
 import ProjectForm from '@/components/admin/ProjectForm'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -68,7 +69,6 @@ export default function ProjectsPage() {
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [userRole, setUserRole] = useState<string>('engineer')
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean, projectId: string | null }>({ isOpen: false, projectId: null })
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   const supabase = createClient()
 
@@ -145,8 +145,7 @@ export default function ProjectsPage() {
   }
 
   const showToast = (message: string) => {
-    setSuccessMessage(message)
-    setTimeout(() => setSuccessMessage(null), 3000)
+    toast.success(message)
   }
 
   const confirmDelete = (id: string) => {
@@ -170,7 +169,7 @@ export default function ProjectsPage() {
       showToast('Đã xóa hồ sơ thành công!')
     } catch (error) {
       console.error('Error deleting project:', error)
-      alert("Có lỗi xảy ra khi xóa hồ sơ.")
+      toast.error('Có lỗi xảy ra khi xóa hồ sơ.')
     }
   }
 
@@ -283,18 +282,19 @@ export default function ProjectsPage() {
       {/* Projects Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
-          <Table className="w-full min-w-[1000px]">
+          <Table className="w-full min-w-[1100px]">
             <TableHeader className="bg-gray-50 border-b border-gray-100">
               <TableRow>
                 <TableHead className="py-4 px-4 font-semibold text-gray-700">Mã hồ sơ</TableHead>
-                <TableHead className="py-4 px-4 font-semibold text-gray-700">Khách hàng</TableHead>
+                <TableHead className="py-4 px-4 font-semibold text-gray-700">Tên Khách hàng</TableHead>
                 <TableHead className="py-4 px-4 font-semibold text-gray-700">Dịch vụ</TableHead>
                 <TableHead className="py-4 px-4 font-semibold text-gray-700">Trạng thái</TableHead>
                 <TableHead className="py-4 px-4 font-semibold text-gray-700">Ngày tiếp nhận</TableHead>
                 <TableHead className="py-4 px-4 font-semibold text-gray-700">Ngày trả KQ</TableHead>
                 <TableHead className="py-4 px-4 font-semibold text-gray-700">Người thực hiện</TableHead>
                 <TableHead className="py-4 px-4 font-semibold text-gray-700">Bản vẽ</TableHead>
-                <TableHead className="py-4 px-4 font-semibold text-gray-700">Tổng giá</TableHead>
+                <TableHead className="py-4 px-4 font-semibold text-gray-700">Tổng thu</TableHead>
+                <TableHead className="py-4 px-4 font-semibold text-gray-700">Chia sẻ %</TableHead>
                 <TableHead className="py-4 px-4 font-semibold text-gray-700 text-right">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
@@ -357,6 +357,11 @@ export default function ProjectsPage() {
                   <TableCell className="py-4 px-4 font-medium whitespace-nowrap">
                     {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(project.total_price || 0)}
                   </TableCell>
+                  <TableCell className="py-4 px-4 font-medium whitespace-nowrap text-orange-600">
+                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
+                      (project.status === 'completed' || project.status === 'has_result') ? (project.total_price || 0) * 0.2 : 0
+                    )}
+                  </TableCell>
                   <TableCell className="py-4 px-4">
                     <div className="flex items-center justify-end gap-1">
                       <Button
@@ -383,6 +388,25 @@ export default function ProjectsPage() {
                   </TableCell>
                 </motion.tr>
               ))}
+              {/* Total Row */}
+              {filteredProjects.length > 0 && (
+                <TableRow className="bg-gray-50/50 hover:bg-gray-50/50">
+                  <TableCell colSpan={8} className="py-4 px-4 font-bold text-right text-gray-700">
+                    Tổng cộng:
+                  </TableCell>
+                  <TableCell className="py-4 px-4 font-bold whitespace-nowrap">
+                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
+                      filteredProjects.reduce((sum, p) => sum + (p.total_price || 0), 0)
+                    )}
+                  </TableCell>
+                  <TableCell className="py-4 px-4 font-bold whitespace-nowrap text-orange-600">
+                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
+                      filteredProjects.reduce((sum, p) => sum + ((p.status === 'completed' || p.status === 'has_result') ? (p.total_price || 0) * 0.2 : 0), 0)
+                    )}
+                  </TableCell>
+                  <TableCell />
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </div>
@@ -446,21 +470,6 @@ export default function ProjectsPage() {
               </div>
             </motion.div>
           </div>
-        )}
-      </AnimatePresence>
-
-      {/* Success Notification */}
-      <AnimatePresence>
-        {successMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-6 right-6 z-[70] bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3"
-          >
-            <div className="w-2 h-2 bg-green-400 rounded-full" />
-            <span className="font-medium text-sm">{successMessage}</span>
-          </motion.div>
         )}
       </AnimatePresence>
     </div>

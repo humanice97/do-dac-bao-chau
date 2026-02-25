@@ -8,32 +8,57 @@ import {
   FolderKanban,
   Users,
   LogOut,
-  Menu,
-  X,
   Building2,
+  ChevronsUpDown,
+  MoreHorizontal
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 
-const menuItems = [
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+} from '@/components/ui/sidebar'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+
+const mainMenuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/admin', roles: ['admin', 'engineer'] },
   { icon: FolderKanban, label: 'Hồ sơ', href: '/admin/projects', roles: ['admin', 'engineer'] },
   { icon: Users, label: 'Người thực hiện', href: '/admin/engineers', roles: ['admin'] },
 ]
 
 export default function AdminSidebar() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [userRole, setUserRole] = useState<string>('engineer')
+  const [userEmail, setUserEmail] = useState<string>('')
+  const [userName, setUserName] = useState<string>('User')
+
   const pathname = usePathname()
   const supabase = createClient()
 
   useEffect(() => {
-    const fetchUserRole = async () => {
+    const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (user?.user_metadata?.role) {
-        setUserRole(user.user_metadata.role)
+      if (user) {
+        if (user.user_metadata?.role) {
+          setUserRole(user.user_metadata.role)
+        }
+        setUserEmail(user.email || 'm@example.com')
+        if (user.user_metadata?.name) {
+          setUserName(user.user_metadata.name)
+        } else {
+          setUserName(user.email?.split('@')[0] || 'User')
+        }
       }
     }
-    fetchUserRole()
+    fetchUser()
   }, [])
 
   const handleLogout = async () => {
@@ -46,76 +71,101 @@ export default function AdminSidebar() {
   }
 
   return (
-    <>
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-secondary text-white rounded-lg"
-      >
-        {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-      </button>
+    <Sidebar variant="inset" collapsible="icon">
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                    <Building2 className="size-4 shrink-0" />
+                  </div>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">BCMS</span>
+                    <span className="truncate text-xs">Bảo Châu Management</span>
+                  </div>
+                  <ChevronsUpDown className="ml-auto size-4" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg" align="start" side="bottom" sideOffset={4}>
+                <DropdownMenuLabel className="text-xs text-muted-foreground">Teams</DropdownMenuLabel>
+                <DropdownMenuItem className="gap-2 p-2">
+                  <div className="flex size-6 items-center justify-center rounded-sm border">
+                    <Building2 className="size-4 shrink-0" />
+                  </div>
+                  Bảo Châu Management
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
 
-      {/* Sidebar */}
-      <aside
-        className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-secondary transform transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-          }`}
-      >
-        <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="p-6 border-b border-gray-800">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
-                <Building2 className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-white font-bold text-lg">BCMS</h1>
-                <p className="text-gray-400 text-xs">Bảo Châu Management</p>
-              </div>
-            </div>
-          </div>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Chính</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {mainMenuItems.filter(item => item.roles.includes(userRole)).map((item) => {
+                const isActive = pathname === item.href
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
+                      <Link href={item.href}>
+                        <item.icon />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
 
-          {/* Menu */}
-          <nav className="flex-1 p-4 space-y-2">
-            {menuItems.filter(item => item.roles.includes(userRole)).map((item) => {
-              const isActive = pathname === item.href
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
-                    ? 'bg-accent text-white'
-                    : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                    }`}
-                >
-                  <item.icon className="w-5 h-5" />
-                  <span>{item.label}</span>
-                </Link>
-              )
-            })}
-          </nav>
-
-          {/* Logout */}
-          <div className="p-4 border-t border-gray-800">
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors w-full"
-            >
-              <LogOut className="w-5 h-5" />
-              <span>Đăng xuất</span>
-            </button>
-          </div>
-        </div>
-      </aside>
-
-      {/* Mobile Overlay */}
-      {isMobileMenuOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
-    </>
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+                  <Avatar className="h-8 w-8 rounded-lg">
+                    <AvatarImage src="" alt={userName} />
+                    <AvatarFallback className="rounded-lg">{userName.substring(0, 2).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">{userName}</span>
+                    <span className="truncate text-xs">{userEmail}</span>
+                  </div>
+                  <MoreHorizontal className="ml-auto size-4" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg" side="bottom" align="end" sideOffset={4}>
+                <DropdownMenuLabel className="p-0 font-normal">
+                  <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                    <Avatar className="h-8 w-8 rounded-lg">
+                      <AvatarImage src="" alt={userName} />
+                      <AvatarFallback className="rounded-lg">{userName.substring(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div className="grid flex-1 text-left text-sm leading-tight">
+                      <span className="truncate font-semibold">{userName}</span>
+                      <span className="truncate text-xs">{userEmail}</span>
+                    </div>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:bg-red-50 focus:text-red-600 cursor-pointer">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Đăng xuất</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+    </Sidebar>
   )
 }
 

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Search, Phone, Edit2, Trash2, AlertTriangle } from 'lucide-react'
 import { createClient, Engineer } from '@/lib/supabase'
 import EngineerForm from '@/components/admin/EngineerForm'
+import { toast } from 'sonner'
 
 export default function EngineersPage() {
   const [engineers, setEngineers] = useState<Engineer[]>([])
@@ -13,7 +14,7 @@ export default function EngineersPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingEngineer, setEditingEngineer] = useState<Engineer | null>(null)
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean, engineerId: string | null }>({ isOpen: false, engineerId: null })
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
 
   const supabase = createClient()
 
@@ -38,8 +39,7 @@ export default function EngineersPage() {
   }
 
   const showToast = (message: string) => {
-    setSuccessMessage(message)
-    setTimeout(() => setSuccessMessage(null), 3000)
+    toast.success(message)
   }
 
   const confirmDelete = (id: string) => {
@@ -63,7 +63,7 @@ export default function EngineersPage() {
       showToast('Đã xóa người thực hiện thành công!')
     } catch (error) {
       console.error('Error deleting engineer:', error)
-      alert("Có lỗi xảy ra khi xóa người thực hiện.")
+      toast.error('Có lỗi xảy ra khi xóa người thực hiện.')
     }
   }
 
@@ -218,21 +218,6 @@ export default function EngineersPage() {
               </div>
             </motion.div>
           </div>
-        )}
-      </AnimatePresence>
-
-      {/* Success Notification */}
-      <AnimatePresence>
-        {successMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-6 right-6 z-[70] bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3"
-          >
-            <div className="w-2 h-2 bg-green-400 rounded-full" />
-            <span className="font-medium text-sm">{successMessage}</span>
-          </motion.div>
         )}
       </AnimatePresence>
     </div>
