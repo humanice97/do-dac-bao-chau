@@ -34,6 +34,7 @@ const serviceTypes = [
 const statusOptions = [
   { value: 'pending', label: 'Chờ xử lý' },
   { value: 'processing', label: 'Đang xử lý' },
+  { value: 'reviewing', label: 'Đang trình thẩm định' },
   { value: 'has_result', label: 'Đã có kết quả' },
   { value: 'completed', label: 'Hoàn thành (đã trả kết quả)' },
   { value: 'cancelled', label: 'Đã hủy' },
@@ -626,6 +627,16 @@ export default function ProjectForm({ isOpen, onClose, onSuccess, editingProject
                       value={landParcel.land_type || ''}
                       onChange={(e) => handleParcelChange('land_type', e.target.value)}
                       placeholder="VD: ONT, CLN..."
+                      className="bg-white h-9"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Xứ đồng</label>
+                    <Input
+                      type="text"
+                      value={landParcel.address || ''}
+                      onChange={(e) => handleParcelChange('address', e.target.value)}
+                      placeholder="VD: Đồng Bàu Hàm..."
                       className="bg-white h-9"
                     />
                   </div>

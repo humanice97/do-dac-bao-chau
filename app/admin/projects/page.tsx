@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 const statusLabels: { [key: string]: string } = {
   pending: 'Chờ xử lý',
   processing: 'Đang xử lý',
+  reviewing: 'Đang trình thẩm định',
   has_result: 'Đã có kết quả',
   completed: 'Hoàn thành (đã trả kết quả)',
   cancelled: 'Đã hủy'
@@ -32,6 +33,7 @@ const statusLabels: { [key: string]: string } = {
 const statusColors: { [key: string]: string } = {
   pending: 'bg-yellow-100 text-yellow-700',
   processing: 'bg-blue-100 text-blue-700',
+  reviewing: 'bg-indigo-100 text-indigo-700',
   has_result: 'bg-purple-100 text-purple-700',
   completed: 'bg-green-100 text-green-700',
   cancelled: 'bg-red-100 text-red-700'

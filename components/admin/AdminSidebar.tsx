@@ -10,7 +10,8 @@ import {
   LogOut,
   Building2,
   ChevronsUpDown,
-  MoreHorizontal
+  MoreHorizontal,
+  ClipboardCheck
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 
@@ -32,6 +33,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 const mainMenuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/admin', roles: ['admin', 'engineer'] },
   { icon: FolderKanban, label: 'Hồ sơ', href: '/admin/projects', roles: ['admin', 'engineer'] },
+  { icon: ClipboardCheck, label: 'Trình thẩm định', href: '/admin/reviewing', roles: ['admin'] },
   { icon: Users, label: 'Người thực hiện', href: '/admin/engineers', roles: ['admin'] },
 ]
 

@@ -44,6 +44,7 @@ export type LandParcel = {
   map_sheet_number: string
   area: number
   land_type: string
+  address: string
   address_commune_ward: string
   address_district_city: string
 }
