@@ -150,7 +150,9 @@ CREATE TABLE IF NOT EXISTS land_parcels (
   parcel_number TEXT,
   map_sheet_number TEXT,
   area NUMERIC,
+  floor_area NUMERIC,            -- Diện tích sàn
   land_type TEXT,
+  address TEXT,                  -- Xứ đồng
   address_commune_ward TEXT,
   address_district_city TEXT,
   created_at TIMESTAMP DEFAULT NOW()

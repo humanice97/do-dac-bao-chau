@@ -621,6 +621,15 @@ export default function ProjectForm({ isOpen, onClose, onSuccess, editingProject
                     />
                   </div>
                   <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Diện tích sàn (m²)</label>
+                    <Input
+                      type="number"
+                      value={landParcel.floor_area || ''}
+                      onChange={(e) => handleParcelChange('floor_area', Number(e.target.value))}
+                      className="bg-white h-9"
+                    />
+                  </div>
+                  <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Loại đất</label>
                     <Input
                       type="text"

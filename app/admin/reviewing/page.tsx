@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import * as XLSX from 'xlsx'
 import { toast } from 'sonner'
 import { ClipboardCheck, FileDown, CheckSquare, RefreshCw } from 'lucide-react'
 import { createClient, Project, Engineer, LandParcel } from '@/lib/supabase'
@@ -121,48 +120,115 @@ export default function ReviewingPage() {
         }
     }
 
-    const handleExportExcel = () => {
+    const handleExportExcel = async () => {
         if (reviewingProjects.length === 0) {
             toast.error('Không có hồ sơ nào để xuất.')
             return
         }
 
-        const rows = reviewingProjects.map((p, i) => {
-            const parcel = getParcel(p.id)
-            return {
-                'STT': i + 1,
-                'Mã hồ sơ': p.code,
-                'Tên khách hàng': p.customer_name,
-                'Số điện thoại': p.customer_phone,
-                'Địa chỉ': p.address,
-                'Loại dịch vụ': serviceLabels[p.service_type] ?? p.service_type,
-                'Số thửa': parcel?.parcel_number ?? '',
-                'Số tờ bản đồ': parcel?.map_sheet_number ?? '',
-                'Xứ đồng': parcel?.address ?? '',
-                'Diện tích (m²)': parcel?.area ?? '',
-                'Loại đất': parcel?.land_type ?? '',
-                'Xã/Phường': parcel?.address_commune_ward ?? '',
-                'Quận/Huyện': parcel?.address_district_city ?? '',
-                'Ngày tiếp nhận': formatDate(p.received_date),
-                'Ngày trả KQ': formatDate(p.result_date),
-                'Người thực hiện': getEngineerName(p.engineer_id),
-                'Tổng thu': p.total_price ?? 0,
-                'Ghi chú': p.notes ?? '',
-            }
-        })
+        const ExcelJS = (await import('exceljs')).default
+        const wb = new ExcelJS.Workbook()
+        const ws = wb.addWorksheet('Trình thẩm định')
 
-        const ws = XLSX.utils.json_to_sheet(rows)
-        const wb = XLSX.utils.book_new()
-        XLSX.utils.book_append_sheet(wb, ws, 'Trình thẩm định')
-        ws['!cols'] = [
-            { wch: 5 }, { wch: 14 }, { wch: 22 }, { wch: 14 }, { wch: 28 },
-            { wch: 22 }, { wch: 10 }, { wch: 14 }, { wch: 18 }, { wch: 12 },
-            { wch: 12 }, { wch: 18 }, { wch: 20 }, { wch: 14 }, { wch: 14 },
-            { wch: 20 }, { wch: 16 }, { wch: 24 },
+        // ── Column widths ────────────────────────────────────────────────
+        ws.columns = [
+            { key: 'stt', width: 5 },
+            { key: 'tts', width: 12 },
+            { key: 'name', width: 21 },
+            { key: 'ward', width: 20 },
+            { key: 'sheet', width: 9 },
+            { key: 'parcel', width: 8 },
+            { key: 'area', width: 13 },
+            { key: 'floor', width: 13 },
+            { key: 'landtype', width: 11 },
+            { key: 'note', width: 26 },
         ]
 
+        // ── Helper: thin border all 4 sides ─────────────────────────────
+        const thin = { style: 'thin' } as const
+        const thinBorder = { top: thin, left: thin, bottom: thin, right: thin }
+
+        // ── Row 1: Title ─────────────────────────────────────────────────
+        ws.mergeCells('A1:J1')
+        const titleRow = ws.getRow(1)
+        titleRow.height = 22
+        const titleCell = ws.getCell('A1')
+        titleCell.value = 'DANH SÁCH THẨM ĐỊNH TRÍCH ĐO CHỈNH LÝ THỪA ĐẤT VÀ BỔ SUNG TÀI SẢN TRÊN ĐẤT'
+        titleCell.font = { name: 'Times New Roman', bold: true, size: 13 }
+        titleCell.alignment = { horizontal: 'center', vertical: 'middle' }
+
+        // ── Row 2: Subtitle ──────────────────────────────────────────────
+        ws.mergeCells('A2:J2')
+        const subRow = ws.getRow(2)
+        subRow.height = 15
+        const subCell = ws.getCell('A2')
+        subCell.value = 'Đơn vị đo đạc: Công ty TNHH đo đạc bản đồ Bảo Châu - Chi nhánh Quảng Nam'
+        subCell.font = { name: 'Times New Roman', size: 11 }
+        subCell.alignment = { horizontal: 'center', vertical: 'middle' }
+
+        // ── Row 3: Empty spacer ──────────────────────────────────────────
+        ws.getRow(3).height = 5
+
+        // ── Row 4: Headers ───────────────────────────────────────────────
+        const HEADERS = [
+            'STT', 'Tờ trình số', 'Tên chủ sử dụng', 'Xã/Phường',
+            'Tờ bản đồ', 'Số thửa',
+            'Diện tích TĐCL (m²)', 'Diện tích TĐTS (m²)',
+            'Loại đất', 'Ghi chú',
+        ]
+        const headerRow = ws.getRow(4)
+        headerRow.height = 34
+        HEADERS.forEach((h, i) => {
+            const cell = headerRow.getCell(i + 1)
+            cell.value = h
+            cell.font = { name: 'Times New Roman', bold: true, size: 11 }
+            cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
+            cell.border = thinBorder
+        })
+
+        // ── Rows 5+: Data ────────────────────────────────────────────────
+        reviewingProjects.forEach((p, i) => {
+            const parcel = getParcel(p.id)
+            const rowIndex = i + 5
+            const dataRow = ws.getRow(rowIndex)
+            dataRow.height = 15
+
+            const values = [
+                i + 1,
+                '',
+                p.customer_name,
+                parcel?.address_commune_ward ?? '',
+                parcel?.map_sheet_number ?? '',
+                parcel?.parcel_number ?? '',
+                parcel?.area ?? 0,
+                parcel?.floor_area ?? 0,
+                parcel?.land_type ?? '',
+                p.notes ?? '',
+            ]
+
+            values.forEach((v, ci) => {
+                const cell = dataRow.getCell(ci + 1)
+                cell.value = v
+                cell.font = { name: 'Times New Roman', size: 11 }
+                cell.border = thinBorder
+                // center columns: STT, Tờ trình số, Tờ bản đồ, Số thửa, Diện tích x2
+                const centered = [1, 2, 5, 6, 7, 8, 9].includes(ci + 1)
+                cell.alignment = { vertical: 'middle', horizontal: centered ? 'center' : 'left' }
+            })
+        })
+
+        // ── Download ─────────────────────────────────────────────────────
+        const buf = await wb.xlsx.writeBuffer()
+        const blob = new Blob([buf], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
         const dateStr = new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')
-        XLSX.writeFile(wb, `TrinhThamDinh_${dateStr}.xlsx`)
+        a.href = url
+        a.download = `TrinhThamDinh_${dateStr}.xlsx`
+        a.click()
+        URL.revokeObjectURL(url)
         toast.success('Đã xuất file Excel thành công!')
     }
 
@@ -323,54 +389,44 @@ export default function ReviewingPage() {
                     ) : (
                         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                             <div className="overflow-x-auto">
-                                <Table className="min-w-[1400px]">
+                                <Table className="min-w-[1000px]">
                                     <TableHeader className="bg-gray-50">
                                         <TableRow>
-                                            <TableHead className="py-4 px-4 font-semibold text-gray-700">Mã hồ sơ</TableHead>
-                                            <TableHead className="py-4 px-4 font-semibold text-gray-700">Tên khách hàng</TableHead>
-                                            <TableHead className="py-4 px-4 font-semibold text-gray-700">Dịch vụ</TableHead>
-                                            <TableHead className="py-4 px-3 font-semibold text-indigo-700 text-center bg-indigo-50">Số thửa</TableHead>
-                                            <TableHead className="py-4 px-3 font-semibold text-indigo-700 text-center bg-indigo-50">Tờ bản đồ</TableHead>
-                                            <TableHead className="py-4 px-3 font-semibold text-indigo-700 bg-indigo-50">Xứ đồng</TableHead>
-                                            <TableHead className="py-4 px-3 font-semibold text-indigo-700 text-center bg-indigo-50">Diện tích</TableHead>
-                                            <TableHead className="py-4 px-3 font-semibold text-indigo-700 bg-indigo-50">Loại đất</TableHead>
+                                            <TableHead className="py-4 px-3 font-semibold text-gray-700 w-12 text-center">STT</TableHead>
+                                            <TableHead className="py-4 px-4 font-semibold text-gray-700">Tên chủ sử dụng</TableHead>
                                             <TableHead className="py-4 px-3 font-semibold text-indigo-700 bg-indigo-50">Xã/Phường</TableHead>
-                                            <TableHead className="py-4 px-4 font-semibold text-gray-700">Ngày TN</TableHead>
-                                            <TableHead className="py-4 px-4 font-semibold text-gray-700">Người TH</TableHead>
-                                            <TableHead className="py-4 px-4 font-semibold text-gray-700">Tổng thu</TableHead>
+                                            <TableHead className="py-4 px-3 font-semibold text-indigo-700 text-center bg-indigo-50">Tờ bản đồ</TableHead>
+                                            <TableHead className="py-4 px-3 font-semibold text-indigo-700 text-center bg-indigo-50">Số thửa</TableHead>
+                                            <TableHead className="py-4 px-3 font-semibold text-indigo-700 text-center bg-indigo-50">Diện tích (m²)</TableHead>
+                                            <TableHead className="py-4 px-3 font-semibold text-indigo-700 text-center bg-indigo-50">Diện tích sàn (m²)</TableHead>
+                                            <TableHead className="py-4 px-3 font-semibold text-indigo-700 bg-indigo-50">Loại đất</TableHead>
+                                            <TableHead className="py-4 px-4 font-semibold text-gray-700">Ghi chú</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {reviewingProjects.map(p => {
+                                        {reviewingProjects.map((p, i) => {
                                             const parcel = getParcel(p.id)
                                             return (
                                                 <TableRow key={p.id} className="hover:bg-gray-50/50 transition-colors">
-                                                    <TableCell className="py-4 px-4 font-medium text-primary">{p.code}</TableCell>
+                                                    <TableCell className="py-4 px-3 text-center text-gray-500">{i + 1}</TableCell>
                                                     <TableCell className="py-4 px-4">
                                                         <p className="font-medium text-secondary">{p.customer_name}</p>
                                                         <p className="text-xs text-gray-400">{p.customer_phone}</p>
                                                     </TableCell>
-                                                    <TableCell className="py-4 px-4 text-gray-600 text-sm">{serviceLabels[p.service_type] ?? p.service_type}</TableCell>
-                                                    <TableCell className="py-3 px-3 text-center bg-indigo-50/30 font-semibold text-indigo-800">{parcel?.parcel_number ?? '—'}</TableCell>
+                                                    <TableCell className="py-3 px-3 bg-indigo-50/30 text-gray-700 text-sm">{parcel?.address_commune_ward ?? '—'}</TableCell>
                                                     <TableCell className="py-3 px-3 text-center bg-indigo-50/30 text-gray-700">{parcel?.map_sheet_number ?? '—'}</TableCell>
-                                                    <TableCell className="py-3 px-3 bg-indigo-50/30 text-gray-700 text-sm">{parcel?.address ?? '—'}</TableCell>
+                                                    <TableCell className="py-3 px-3 text-center bg-indigo-50/30 font-semibold text-indigo-800">{parcel?.parcel_number ?? '—'}</TableCell>
                                                     <TableCell className="py-3 px-3 text-center bg-indigo-50/30 text-gray-700 whitespace-nowrap">
-                                                        {parcel?.area != null ? `${parcel.area} m²` : '—'}
+                                                        {parcel?.area != null ? `${parcel.area}` : '—'}
+                                                    </TableCell>
+                                                    <TableCell className="py-3 px-3 text-center bg-indigo-50/30 text-gray-700 whitespace-nowrap">
+                                                        {parcel?.floor_area != null ? `${parcel.floor_area}` : '—'}
                                                     </TableCell>
                                                     <TableCell className="py-3 px-3 bg-indigo-50/30 text-gray-700 text-sm">{parcel?.land_type ?? '—'}</TableCell>
-                                                    <TableCell className="py-3 px-3 bg-indigo-50/30 text-gray-700 text-sm">{parcel?.address_commune_ward ?? '—'}</TableCell>
-                                                    <TableCell className="py-4 px-4 text-gray-600 whitespace-nowrap">{formatDate(p.received_date)}</TableCell>
-                                                    <TableCell className="py-4 px-4 text-gray-600">{getEngineerName(p.engineer_id)}</TableCell>
-                                                    <TableCell className="py-4 px-4 font-medium whitespace-nowrap">{formatCurrency(p.total_price)}</TableCell>
+                                                    <TableCell className="py-4 px-4 text-gray-500 text-sm max-w-[180px] truncate">{p.notes || '—'}</TableCell>
                                                 </TableRow>
                                             )
                                         })}
-                                        <TableRow className="bg-gray-50/50 hover:bg-gray-50/50">
-                                            <TableCell colSpan={11} className="py-4 px-4 font-bold text-right text-gray-700">Tổng cộng:</TableCell>
-                                            <TableCell className="py-4 px-4 font-bold whitespace-nowrap">
-                                                {formatCurrency(reviewingProjects.reduce((s, p) => s + (p.total_price ?? 0), 0))}
-                                            </TableCell>
-                                        </TableRow>
                                     </TableBody>
                                 </Table>
                             </div>

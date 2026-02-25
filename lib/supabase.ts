@@ -43,6 +43,7 @@ export type LandParcel = {
   parcel_number: string
   map_sheet_number: string
   area: number
+  floor_area: number
   land_type: string
   address: string
   address_commune_ward: string
