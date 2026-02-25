@@ -11,6 +11,10 @@ const menuItems = [
   { label: 'FAQ', href: '#faq' },
 ]
 
+const externalLinks = [
+  { label: 'Tra cứu hồ sơ', href: '/track' },
+]
+
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -25,20 +29,23 @@ export default function Header() {
 
   const handleNavClick = (href: string) => {
     setIsMobileMenuOpen(false)
-    const element = document.querySelector(href)
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' })
+    if (href.startsWith('#')) {
+      const element = document.querySelector(href)
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' })
+      }
+    } else {
+      window.location.href = href
     }
   }
 
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          isScrolled
-            ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-100'
-            : 'bg-transparent'
-        }`}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
+          ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-100'
+          : 'bg-transparent'
+          }`}
       >
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-20">
@@ -49,9 +56,8 @@ export default function Header() {
                 e.preventDefault()
                 window.scrollTo({ top: 0, behavior: 'smooth' })
               }}
-              className={`font-bold font-heading text-xl lg:text-2xl transition-colors ${
-                isScrolled ? 'text-primary' : 'text-white'
-              }`}
+              className={`font-bold font-heading text-xl lg:text-2xl transition-colors ${isScrolled ? 'text-primary' : 'text-white'
+                }`}
             >
               Bảo Châu Survey
             </a>
@@ -62,13 +68,26 @@ export default function Header() {
                 <button
                   key={item.label}
                   onClick={() => handleNavClick(item.href)}
-                  className={`font-medium transition-colors hover:text-accent ${
-                    isScrolled ? 'text-secondary' : 'text-white/90'
-                  }`}
+                  className={`font-medium transition-colors hover:text-accent ${isScrolled ? 'text-secondary' : 'text-white/90'
+                    }`}
                 >
                   {item.label}
                 </button>
               ))}
+
+              <div className="flex gap-4 border-l pl-8 ml-2 border-white/20">
+                {externalLinks.map((item) => (
+                  <button
+                    key={item.label}
+                    onClick={() => handleNavClick(item.href)}
+                    className={`font-medium transition-colors hover:text-accent ${isScrolled ? 'text-secondary' : 'text-white/90'
+                      }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+
               <a
                 href="tel:0905123456"
                 className="inline-flex items-center gap-2 bg-accent hover:bg-orange-600 text-white font-semibold px-5 py-2.5 rounded-lg transition-all duration-300 shadow-lg shadow-orange-500/30"
@@ -81,9 +100,8 @@ export default function Header() {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className={`lg:hidden p-2 rounded-lg transition-colors ${
-                isScrolled ? 'text-secondary hover:bg-gray-100' : 'text-white hover:bg-white/10'
-              }`}
+              className={`lg:hidden p-2 rounded-lg transition-colors ${isScrolled ? 'text-secondary hover:bg-gray-100' : 'text-white hover:bg-white/10'
+                }`}
               aria-label="Toggle menu"
             >
               {isMobileMenuOpen ? (
@@ -111,6 +129,18 @@ export default function Header() {
                     key={item.label}
                     onClick={() => handleNavClick(item.href)}
                     className="block w-full text-left px-4 py-3 text-secondary font-medium hover:bg-gray-50 rounded-lg transition-colors"
+                  >
+                    {item.label}
+                  </button>
+                ))}
+
+                <div className="h-px bg-gray-100 my-2" />
+
+                {externalLinks.map((item) => (
+                  <button
+                    key={item.label}
+                    onClick={() => handleNavClick(item.href)}
+                    className="block w-full text-left px-4 py-3 text-primary font-medium hover:bg-primary/5 rounded-lg transition-colors"
                   >
                     {item.label}
                   </button>

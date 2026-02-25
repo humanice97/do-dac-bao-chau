@@ -103,44 +103,44 @@ CREATE POLICY "Enable read access for all users" ON engineers
 CREATE POLICY "Enable insert for admins only" ON engineers
   FOR INSERT WITH CHECK (
     auth.role() = 'authenticated' AND 
-    (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin')
+    (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin')
   );
 
 CREATE POLICY "Enable update for admins only" ON engineers
   FOR UPDATE USING (
     auth.role() = 'authenticated' AND 
-    (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin')
+    (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin')
   );
 
 CREATE POLICY "Enable delete for admins only" ON engineers
   FOR DELETE USING (
     auth.role() = 'authenticated' AND 
-    (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin')
+    (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin')
   );
 
 -- RLS Policies for projects
 CREATE POLICY "Enable read for admins or assigned engineers" ON projects
   FOR SELECT USING (
-    (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin') OR
+    (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin') OR
     (engineer_id IN (SELECT id FROM engineers WHERE user_id = auth.uid()))
   );
 
 CREATE POLICY "Enable insert for admins only" ON projects
   FOR INSERT WITH CHECK (
     auth.role() = 'authenticated' AND 
-    (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin')
+    (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin')
   );
 
 CREATE POLICY "Enable update for admins or assigned engineers" ON projects
   FOR UPDATE USING (
-    (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin') OR
+    (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin') OR
     (engineer_id IN (SELECT id FROM engineers WHERE user_id = auth.uid()))
   );
 
 CREATE POLICY "Enable delete for admins only" ON projects
   FOR DELETE USING (
     auth.role() = 'authenticated' AND 
-    (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin')
+    (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin')
   );
 
 -- Create land_parcels table
@@ -162,7 +162,7 @@ ALTER TABLE land_parcels ENABLE ROW LEVEL SECURITY;
 -- RLS Policies for land_parcels
 CREATE POLICY "Enable read for admins or assigned engineers" ON land_parcels
   FOR SELECT USING (
-    (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin') OR
+    (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin') OR
     (project_id IN (
       SELECT id FROM projects WHERE engineer_id IN (
         SELECT id FROM engineers WHERE user_id = auth.uid()
@@ -173,7 +173,7 @@ CREATE POLICY "Enable read for admins or assigned engineers" ON land_parcels
 CREATE POLICY "Enable insert for admins or assigned engineers" ON land_parcels
   FOR INSERT WITH CHECK (
     auth.role() = 'authenticated' AND (
-      (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin') OR
+      (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin') OR
       (project_id IN (
         SELECT id FROM projects WHERE engineer_id IN (
           SELECT id FROM engineers WHERE user_id = auth.uid()
@@ -184,7 +184,7 @@ CREATE POLICY "Enable insert for admins or assigned engineers" ON land_parcels
 
 CREATE POLICY "Enable update for admins or assigned engineers" ON land_parcels
   FOR UPDATE USING (
-    (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin') OR
+    (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin') OR
     (project_id IN (
       SELECT id FROM projects WHERE engineer_id IN (
         SELECT id FROM engineers WHERE user_id = auth.uid()
@@ -195,5 +195,37 @@ CREATE POLICY "Enable update for admins or assigned engineers" ON land_parcels
 CREATE POLICY "Enable delete for admins only" ON land_parcels
   FOR DELETE USING (
     auth.role() = 'authenticated' AND 
-    (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin')
+    (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin')
   );
+
+-- ==============================================================================
+-- Storage Policies for project-drawings bucket
+-- ==============================================================================
+
+-- 1. Drop existing storage policies
+DROP POLICY IF EXISTS "Cho phép Upload bản vẽ PDF DGN" ON storage.objects;
+DROP POLICY IF EXISTS "Cho phép Xem bản vẽ" ON storage.objects;
+DROP POLICY IF EXISTS "Cho phép Update bản vẽ" ON storage.objects;
+DROP POLICY IF EXISTS "Cho phép Delete bản vẽ" ON storage.objects;
+
+-- 2. Read access for all users (public can view drawings if URL is shared)
+CREATE POLICY "Cho phép Xem bản vẽ"
+ON storage.objects FOR SELECT
+USING ( bucket_id = 'project-drawings' );
+
+-- 3. Insert access for authenticated users (Admins/Engineers)
+CREATE POLICY "Cho phép Upload bản vẽ PDF DGN"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK ( bucket_id = 'project-drawings' );
+
+-- 4. Update/Delete access for authenticated users (to override or remove old files)
+CREATE POLICY "Cho phép Update bản vẽ"
+ON storage.objects FOR UPDATE
+TO authenticated
+USING ( bucket_id = 'project-drawings' );
+
+CREATE POLICY "Cho phép Delete bản vẽ"
+ON storage.objects FOR DELETE
+TO authenticated
+USING ( bucket_id = 'project-drawings' );

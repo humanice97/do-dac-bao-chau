@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Search, Building2, Calendar, CheckCircle, XCircle, Clock, AlertTriangle, FileCheck, Award } from 'lucide-react'
+import { Search, Building2, Calendar, CheckCircle, XCircle, Clock, AlertTriangle, FileCheck, Award, Download } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 
 const statusLabels: { [key: string]: { label: string; color: string; icon: any } } = {
@@ -31,7 +31,7 @@ export default function TrackPage() {
     try {
       const { data, error } = await supabase
         .from('projects')
-        .select('status, received_date, result_date, code, customer_name, start_date, service_type')
+        .select('status, received_date, result_date, code, customer_name, start_date, service_type, drawing_url')
         .eq('code', code)
         .eq('customer_phone', phone)
         .single()
@@ -52,12 +52,12 @@ export default function TrackPage() {
   // Kiểm tra hồ sơ có trễ không
   const isLate = (project: any) => {
     if (project.status === 'completed' || project.status === 'cancelled') return false
-    
+
     const startDate = new Date(project.start_date || project.created_at)
     const today = new Date()
     const diffTime = today.getTime() - startDate.getTime()
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    
+
     return diffDays > 30
   }
 
@@ -174,30 +174,33 @@ export default function TrackPage() {
                 <span className="font-semibold text-secondary">{project.customer_name}</span>
               </div>
               <div className="flex justify-between py-3 border-b border-gray-100">
-                <span className="text-gray-500">Ngày bắt đầu</span>
-                <span className="font-semibold text-secondary">
-                  {project.start_date ? new Date(project.start_date).toLocaleDateString('vi-VN') : 'Chưa cập nhật'}
-                </span>
-              </div>
-              <div className="flex justify-between py-3 border-b border-gray-100">
                 <span className="text-gray-500">Ngày tiếp nhận</span>
                 <span className="font-semibold text-secondary">
                   {project.received_date ? new Date(project.received_date).toLocaleDateString('vi-VN') : 'Chưa cập nhật'}
                 </span>
               </div>
-              <div className="flex justify-between py-3 border-b border-gray-100">
-                <span className="text-gray-500">Ngày trả kết quả</span>
-                <span className="font-semibold text-secondary">
-                  {project.result_date ? new Date(project.result_date).toLocaleDateString('vi-VN') : 'Chưa trả'}
-                </span>
-              </div>
               <div className="flex justify-between py-3">
-                <span className="text-gray-500">Dự kiến hoàn thành</span>
+                <span className="text-gray-500">Ngày dự kiến trả kết quả</span>
                 <span className="font-semibold text-secondary">
-                  {project.start_date ? new Date(new Date(project.start_date).getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('vi-VN') : 'Chưa xác định'}
+                  {project.result_date ? new Date(project.result_date).toLocaleDateString('vi-VN') : 'Chưa xác định'}
                 </span>
               </div>
             </div>
+
+            {/* Nút tải bản vẽ */}
+            {project.drawing_url && (
+              <div className="mt-6 pt-6 border-t border-gray-100 flex justify-center">
+                <a
+                  href={project.drawing_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-primary/10 hover:bg-primary/20 text-primary font-medium rounded-xl transition-colors"
+                >
+                  <Download className="w-5 h-5" />
+                  Tải Bản Vẽ Kỹ Thuật
+                </a>
+              </div>
+            )}
           </motion.div>
         )}
 

@@ -14,7 +14,11 @@ import {
 } from 'lucide-react'
 import { createClient, Project, Engineer } from '@/lib/supabase'
 import ProjectForm from '@/components/admin/ProjectForm'
-import CustomSelect from '@/components/admin/CustomSelect'
+
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 const statusLabels: { [key: string]: string } = {
   pending: 'Chờ xử lý',
@@ -202,13 +206,13 @@ export default function ProjectsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold text-secondary">Quản lý hồ sơ</h1>
         {userRole === 'admin' && (
-          <button
+          <Button
             onClick={handleAddNew}
-            className="flex items-center justify-center gap-2 bg-accent hover:bg-orange-600 text-white px-4 py-2.5 rounded-lg transition-colors"
+            className="bg-accent hover:bg-orange-600 text-white h-11 px-4 gap-2 text-base rounded-lg"
           >
             <Plus className="w-5 h-5" />
             Thêm hồ sơ
-          </button>
+          </Button>
         )}
       </div>
 
@@ -216,46 +220,61 @@ export default function ProjectsPage() {
       <div className="flex flex-col lg:flex-row gap-4 mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
+          <Input
             type="text"
             placeholder="Tìm kiếm theo tên khách hàng hoặc mã hồ sơ..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+            className="pl-12 h-12 w-full transition-shadow focus-visible:ring-primary"
           />
         </div>
         <div className="flex flex-wrap lg:flex-nowrap gap-3">
-          <CustomSelect
-            value={filterStatus}
-            onChange={setFilterStatus}
-            options={[
-              { value: 'all', label: 'Tất cả trạng thái' },
-              ...Object.entries(statusLabels).map(([value, label]) => ({ value, label }))
-            ]}
-            icon={<Filter className="w-4 h-4 text-gray-500" />}
-          />
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="h-12 w-[180px] bg-white border-gray-200 text-gray-700">
+              <div className="flex items-center gap-2 truncate text-left pr-2 w-full">
+                <span className="flex-shrink-0 text-gray-500"><Filter className="w-4 h-4" /></span>
+                <div className="truncate flex-1 text-left"><SelectValue placeholder="Tất cả trạng thái" /></div>
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả trạng thái</SelectItem>
+              {Object.entries(statusLabels).map(([value, label]) => (
+                <SelectItem key={value} value={value}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-          <CustomSelect
-            value={filterService}
-            onChange={setFilterService}
-            options={[
-              { value: 'all', label: 'Tất cả dịch vụ' },
-              ...Object.entries(serviceLabels).map(([value, label]) => ({ value, label }))
-            ]}
-            icon={<Layers className="w-4 h-4 text-gray-500" />}
-          />
+          <Select value={filterService} onValueChange={setFilterService}>
+            <SelectTrigger className="h-12 w-[220px] bg-white border-gray-200 text-gray-700">
+              <div className="flex items-center gap-2 truncate text-left pr-2 w-full">
+                <span className="flex-shrink-0 text-gray-500"><Layers className="w-4 h-4" /></span>
+                <div className="truncate flex-1 text-left"><SelectValue placeholder="Tất cả dịch vụ" /></div>
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả dịch vụ</SelectItem>
+              {Object.entries(serviceLabels).map(([value, label]) => (
+                <SelectItem key={value} value={value}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           {userRole === 'admin' && (
             <div className="min-w-[200px]">
-              <CustomSelect
-                value={filterEngineer}
-                onChange={setFilterEngineer}
-                options={[
-                  { value: 'all', label: 'Tất cả người thực hiện' },
-                  ...engineers.map(e => ({ value: e.id, label: e.name }))
-                ]}
-                icon={<User className="w-4 h-4 text-gray-500" />}
-              />
+              <Select value={filterEngineer} onValueChange={setFilterEngineer}>
+                <SelectTrigger className="h-12 w-[220px] bg-white border-gray-200 text-gray-700">
+                  <div className="flex items-center gap-2 truncate text-left pr-2 w-full">
+                    <span className="flex-shrink-0 text-gray-500"><User className="w-4 h-4" /></span>
+                    <div className="truncate flex-1 text-left"><SelectValue placeholder="Tất cả người thực hiện" /></div>
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả người thực hiện</SelectItem>
+                  {engineers.map(e => (
+                    <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
         </div>
@@ -264,102 +283,108 @@ export default function ProjectsPage() {
       {/* Projects Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-100">
-              <tr>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">Mã hồ sơ</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">Khách hàng</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">Dịch vụ</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">Trạng thái</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">Ngày tiếp nhận</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">Ngày trả KQ</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">Người thực hiện</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">Bản vẽ</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">Tổng giá</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
+          <Table className="w-full min-w-[1000px]">
+            <TableHeader className="bg-gray-50 border-b border-gray-100">
+              <TableRow>
+                <TableHead className="py-4 px-4 font-semibold text-gray-700">Mã hồ sơ</TableHead>
+                <TableHead className="py-4 px-4 font-semibold text-gray-700">Khách hàng</TableHead>
+                <TableHead className="py-4 px-4 font-semibold text-gray-700">Dịch vụ</TableHead>
+                <TableHead className="py-4 px-4 font-semibold text-gray-700">Trạng thái</TableHead>
+                <TableHead className="py-4 px-4 font-semibold text-gray-700">Ngày tiếp nhận</TableHead>
+                <TableHead className="py-4 px-4 font-semibold text-gray-700">Ngày trả KQ</TableHead>
+                <TableHead className="py-4 px-4 font-semibold text-gray-700">Người thực hiện</TableHead>
+                <TableHead className="py-4 px-4 font-semibold text-gray-700">Bản vẽ</TableHead>
+                <TableHead className="py-4 px-4 font-semibold text-gray-700">Tổng giá</TableHead>
+                <TableHead className="py-4 px-4 font-semibold text-gray-700 text-right">Thao tác</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-gray-100">
               {filteredProjects.map((project) => (
                 <motion.tr
                   key={project.id}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="hover:bg-gray-50"
+                  className="hover:bg-gray-50/50 transition-colors group"
                 >
-                  <td className="py-4 px-6 font-medium text-primary">
-                    <div className="flex items-center gap-2">
+                  <TableCell className="py-4 px-4 font-medium text-primary">
+                    <div className="flex items-center gap-2 max-w-[150px] truncate">
                       {project.code}
                       {isLate(project) && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded-full text-[10px] font-medium leading-none shrink-0 border border-red-200/50 shadow-sm">
                           <AlertTriangle className="w-3 h-3" />
                           Trễ
                         </span>
                       )}
                     </div>
-                  </td>
-                  <td className="py-4 px-6">
-                    <div>
-                      <p className="font-medium text-secondary">{project.customer_name}</p>
+                  </TableCell>
+                  <TableCell className="py-4 px-4">
+                    <div className="max-w-[180px]">
+                      <p className="font-medium text-secondary truncate">{project.customer_name}</p>
                       <p className="text-sm text-gray-500">{project.customer_phone}</p>
                     </div>
-                  </td>
-                  <td className="py-4 px-6 text-gray-600">
+                  </TableCell>
+                  <TableCell className="py-4 px-4 text-gray-600 max-w-[180px] truncate">
                     {serviceLabels[project.service_type] || project.service_type}
-                  </td>
-                  <td className="py-4 px-6">
-                    <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${statusColors[project.status] || 'bg-gray-100 text-gray-700'}`}>
+                  </TableCell>
+                  <TableCell className="py-4 px-4">
+                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold tracking-wide border shadow-sm ${statusColors[project.status] || 'bg-gray-100 text-gray-700 border-gray-200'}`}>
                       {statusLabels[project.status] || project.status}
                     </span>
-                  </td>
-                  <td className="py-4 px-6 text-gray-600">
+                  </TableCell>
+                  <TableCell className="py-4 px-4 text-gray-600 whitespace-nowrap">
                     {formatDate(project.received_date)}
-                  </td>
-                  <td className="py-4 px-6 text-gray-600">
+                  </TableCell>
+                  <TableCell className="py-4 px-4 text-gray-600 whitespace-nowrap">
                     {formatDate(project.result_date)}
-                  </td>
-                  <td className="py-4 px-6 text-gray-600">
+                  </TableCell>
+                  <TableCell className="py-4 px-4 text-gray-600 whitespace-nowrap">
                     {getEngineerName(project.engineer_id)}
-                  </td>
-                  <td className="py-4 px-6 text-gray-600">
+                  </TableCell>
+                  <TableCell className="py-4 px-4 text-gray-600">
                     {project.drawing_url ? (
                       <a
                         href={project.drawing_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20"
+                        className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 hover:shadow-sm border border-primary/10 transition-all whitespace-nowrap"
                       >
-                        Xem PDF
+                        File PDF
                       </a>
                     ) : (
-                      <span className="text-xs text-gray-400">Chưa có</span>
+                      <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded border border-gray-100">Chưa có</span>
                     )}
-                  </td>
-                  <td className="py-4 px-6 font-medium">
+                  </TableCell>
+                  <TableCell className="py-4 px-4 font-medium whitespace-nowrap">
                     {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(project.total_price || 0)}
-                  </td>
-                  <td className="py-4 px-6">
-                    <div className="flex items-center gap-2">
-                      <button
+                  </TableCell>
+                  <TableCell className="py-4 px-4">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => handleEdit(project)}
-                        className="p-2 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                        className="text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors h-8 w-8"
+                        title="Chỉnh sửa"
                       >
                         <Edit2 className="w-4 h-4" />
-                      </button>
+                      </Button>
                       {userRole === 'admin' && (
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => confirmDelete(project.id)}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors h-8 w-8"
+                          title="Xóa"
                         >
                           <Trash2 className="w-4 h-4" />
-                        </button>
+                        </Button>
                       )}
                     </div>
-                  </td>
+                  </TableCell>
                 </motion.tr>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
 
         {filteredProjects.length === 0 && (
