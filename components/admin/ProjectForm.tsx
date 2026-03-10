@@ -186,8 +186,55 @@ export default function ProjectForm({ isOpen, onClose, onSuccess, editingProject
     }
   }
 
+  // Bảng giá niêm yết (VNĐ) — trích đo địa chính thửa đất
+  const priceTable = [
+    { maxArea: 100, xa: 2_500_000, phuong: 3_700_000 },
+    { maxArea: 300, xa: 3_000_000, phuong: 4_500_000 },
+    { maxArea: 500, xa: 3_200_000, phuong: 4_700_000 },
+    { maxArea: 1_000, xa: 4_000_000, phuong: 5_800_000 },
+    { maxArea: 3_000, xa: 5_300_000, phuong: 7_900_000 },
+    { maxArea: 10_000, xa: 8_100_000, phuong: 12_100_000 },
+    { maxArea: Infinity, xa: 9_700_000, phuong: 14_500_000 },
+  ]
+
+  // Bảng giá niêm yết (VNĐ) — diện tích sàn (tài sản)
+  const floorPriceTable = [
+    { maxArea: 100, xa: 2_100_000, phuong: 2_600_000 },
+    { maxArea: 300, xa: 2_300_000, phuong: 3_100_000 },
+    { maxArea: 500, xa: 2_500_000, phuong: 3_300_000 },
+    { maxArea: 1_000, xa: 2_700_000, phuong: 4_100_000 },
+    { maxArea: Infinity, xa: 3_700_000, phuong: 5_600_000 },
+  ]
+
+  const lookupPrice = (table: typeof priceTable, isPhuong: boolean, area: number): number => {
+    const row = table.find(r => area <= r.maxArea)
+    if (!row) return 0
+    return isPhuong ? row.phuong : row.xa
+  }
+
+  const calculateTotalPrice = (ward: string, area: number, floorArea: number): number | null => {
+    if (!ward) return null
+    const isPhuong = ward.toLowerCase().startsWith('ph')
+
+    const landPrice = area > 0 ? lookupPrice(priceTable, isPhuong, area) : 0
+    const floorPrice = floorArea > 0 ? lookupPrice(floorPriceTable, isPhuong, floorArea) : 0
+
+    const total = landPrice + floorPrice
+    return total > 0 ? total : null
+  }
+
   const handleParcelChange = (field: keyof LandParcel, value: string | number) => {
-    setLandParcel(prev => ({ ...prev, [field]: value }))
+    setLandParcel(prev => {
+      const updated = { ...prev, [field]: value }
+      const ward      = field === 'address_commune_ward' ? (value as string) : (prev.address_commune_ward || '')
+      const area      = field === 'area'       ? (value as number) : (prev.area || 0)
+      const floorArea = field === 'floor_area' ? (value as number) : (prev.floor_area || 0)
+      const price = calculateTotalPrice(ward, area, floorArea)
+      if (price !== null) {
+        setFormData(f => ({ ...f, total_price: price }))
+      }
+      return updated
+    })
   }
 
   // Handle received date change and auto-calc result date (30 days later)
@@ -510,45 +557,23 @@ export default function ProjectForm({ isOpen, onClose, onSuccess, editingProject
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Trạng thái
-                </label>
-                <Select value={formData.status} onValueChange={(val) => setFormData({ ...formData, status: val })}>
-                  <SelectTrigger className="h-12 w-full text-gray-700 bg-white border-gray-200">
-                    <div className="flex items-center gap-2 truncate text-left pr-2 w-full">
-                      <span className="flex-shrink-0 text-gray-400"><Activity className="w-5 h-5" /></span>
-                      <div className="truncate flex-1 text-left"><SelectValue placeholder="Chọn trạng thái" /></div>
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {statusOptions.map(s => (
-                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tổng giá (VNĐ)
-                </label>
-                <div className="relative">
-                  <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <Input
-                    type="number"
-                    value={formData.total_price}
-                    onChange={(e) =>
-                      setFormData({ ...formData, total_price: Number(e.target.value) })
-                    }
-                    min="0"
-                    disabled={userRole !== 'admin'}
-                    className="pl-12 h-12"
-                    placeholder="Nhập tổng giá"
-                  />
-                </div>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Trạng thái
+              </label>
+              <Select value={formData.status} onValueChange={(val) => setFormData({ ...formData, status: val })}>
+                <SelectTrigger className="h-12 w-full text-gray-700 bg-white border-gray-200">
+                  <div className="flex items-center gap-2 truncate text-left pr-2 w-full">
+                    <span className="flex-shrink-0 text-gray-400"><Activity className="w-5 h-5" /></span>
+                    <div className="truncate flex-1 text-left"><SelectValue placeholder="Chọn trạng thái" /></div>
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  {statusOptions.map(s => (
+                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
@@ -798,6 +823,64 @@ export default function ProjectForm({ isOpen, onClose, onSuccess, editingProject
                 </div>
               )}
             </div>
+
+            {/* Tổng giá */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tổng giá (VNĐ)
+              </label>
+              <div className="relative">
+                <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  value={formData.total_price > 0 ? formData.total_price.toLocaleString('vi-VN') : ''}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\D/g, '')
+                    setFormData({ ...formData, total_price: raw ? Number(raw) : 0 })
+                  }}
+                  disabled={userRole !== 'admin'}
+                  className={`pl-12 h-12 ${userRole === 'admin' ? 'font-semibold text-accent' : ''}`}
+                  placeholder="Tự động tính theo địa chỉ và diện tích"
+                />
+              </div>
+
+              {/* Chi tiết giá */}
+              {(() => {
+                const ward = landParcel.address_commune_ward || ''
+                if (!ward) return null
+                const isPhuong = ward.toLowerCase().startsWith('ph')
+                const area = landParcel.area || 0
+                const floorArea = landParcel.floor_area || 0
+                const landPrice = area > 0 ? lookupPrice(priceTable, isPhuong, area) : 0
+                const floorPrice = floorArea > 0 ? lookupPrice(floorPriceTable, isPhuong, floorArea) : 0
+                if (landPrice === 0 && floorPrice === 0) return null
+                const fmt = (n: number) => n.toLocaleString('vi-VN') + ' đ'
+                return (
+                  <div className="mt-2 bg-gray-50 border border-gray-100 rounded-lg px-4 py-3 space-y-1.5 text-sm">
+                    {landPrice > 0 && (
+                      <div className="flex justify-between text-gray-600">
+                        <span>Diện tích đất ({area.toLocaleString('vi-VN')} m²)</span>
+                        <span className="font-medium">{fmt(landPrice)}</span>
+                      </div>
+                    )}
+                    {floorPrice > 0 && (
+                      <div className="flex justify-between text-gray-600">
+                        <span>Diện tích sàn ({floorArea.toLocaleString('vi-VN')} m²)</span>
+                        <span className="font-medium">{fmt(floorPrice)}</span>
+                      </div>
+                    )}
+                    {landPrice > 0 && floorPrice > 0 && (
+                      <div className="flex justify-between text-accent font-semibold border-t border-gray-200 pt-1.5 mt-1">
+                        <span>Tổng</span>
+                        <span>{fmt(landPrice + floorPrice)}</span>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+            </div>
+
           </div>
 
           <div className="flex-shrink-0 flex gap-3 p-4 sm:p-6 bg-white border-t border-gray-100">
