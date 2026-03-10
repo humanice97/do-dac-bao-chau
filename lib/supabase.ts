@@ -48,4 +48,5 @@ export type LandParcel = {
   address: string
   address_commune_ward: string
   address_district_city: string
+  owner_name: string
 }

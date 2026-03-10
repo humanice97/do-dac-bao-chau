@@ -59,7 +59,7 @@ export default function Header() {
               className={`font-bold font-heading text-xl lg:text-2xl transition-colors ${isScrolled ? 'text-primary' : 'text-white'
                 }`}
             >
-              Bảo Châu Survey
+              Hà Nam Thành
             </a>
 
             {/* Desktop Menu */}
@@ -89,11 +89,11 @@ export default function Header() {
               </div>
 
               <a
-                href="tel:0905123456"
+                href="tel:0905225968"
                 className="inline-flex items-center gap-2 bg-accent hover:bg-orange-600 text-white font-semibold px-5 py-2.5 rounded-lg transition-all duration-300 shadow-lg shadow-orange-500/30"
               >
                 <Phone className="w-4 h-4" />
-                0905.123.456
+                0905.225.968
               </a>
             </nav>
 
@@ -146,11 +146,11 @@ export default function Header() {
                   </button>
                 ))}
                 <a
-                  href="tel:0905123456"
+                  href="tel:0905225968"
                   className="flex items-center justify-center gap-2 bg-accent hover:bg-orange-600 text-white font-semibold px-4 py-3.5 rounded-lg transition-colors mt-4"
                 >
                   <Phone className="w-5 h-5" />
-                  Gọi ngay: 0905.123.456
+                  Gọi ngay: 0905.225.968
                 </a>
               </nav>
             </motion.div>
@@ -160,7 +160,7 @@ export default function Header() {
 
       {/* Mobile Hotline Button (Fixed) */}
       <a
-        href="tel:0905123456"
+        href="tel:0905225968"
         className="lg:hidden fixed bottom-6 right-6 z-40 w-14 h-14 bg-accent hover:bg-orange-600 text-white rounded-full shadow-xl shadow-orange-500/40 flex items-center justify-center transition-all duration-300 hover:scale-110 animate-pulse"
         aria-label="Gọi hotline"
       >

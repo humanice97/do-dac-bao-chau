@@ -162,7 +162,7 @@ export default function ReviewingPage() {
         const subRow = ws.getRow(2)
         subRow.height = 15
         const subCell = ws.getCell('A2')
-        subCell.value = 'Đơn vị đo đạc: Công ty TNHH đo đạc bản đồ Bảo Châu - Chi nhánh Quảng Nam'
+        subCell.value = 'Đơn vị đo đạc: Công ty TNHH đo đạc bản đồ Hà Nam Thành - Chi nhánh Quảng Nam'
         subCell.font = { name: 'Times New Roman', size: 11 }
         subCell.alignment = { horizontal: 'center', vertical: 'middle' }
 

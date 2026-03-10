@@ -2,14 +2,14 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Đo Đạc Làm Sổ Đỏ Tại Đà Nẵng | Bảo Châu Survey',
+  title: 'Đo Đạc Làm Sổ Đỏ Tại Đà Nẵng | Hà Nam Thành',
   description:
     'Dịch vụ đo đất làm sổ đỏ, tách thửa, hoàn công tại Đà Nẵng. Kỹ sư có chứng chỉ hành nghề, 5 năm kinh nghiệm. Tư vấn miễn phí.',
   keywords:
     'đo đất Đà Nẵng, đo đất làm sổ đỏ Đà Nẵng, tách thửa Đà Nẵng, đo hoàn công, lập bản vẽ hiện trạng, dịch vụ đo đạc địa chính',
-  authors: [{ name: 'Bảo Châu Survey' }],
+  authors: [{ name: 'Hà Nam Thành' }],
   openGraph: {
-    title: 'Đo Đạc Làm Sổ Đỏ Tại Đà Nẵng | Bảo Châu Survey',
+    title: 'Đo Đạc Làm Sổ Đỏ Tại Đà Nẵng | Hà Nam Thành',
     description:
       'Dịch vụ đo đất làm sổ đỏ, tách thửa, hoàn công tại Đà Nẵng. Kỹ sư có chứng chỉ hành nghề, 5 năm kinh nghiệm.',
     type: 'website',

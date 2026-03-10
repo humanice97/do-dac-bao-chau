@@ -13,7 +13,7 @@ const faqs = [
   {
     question: 'Chi phí đo đất làm sổ đỏ là bao nhiêu?',
     answer:
-      'Chi phí đo đạc được tính theo diện tích thửa đất và mức độ phức tạp của công trình. Chúng tôi cung cấp báo giá miễn phí sau khi khảo sát hiện trường. Liên hệ hotline 0905.123.456 để được tư vấn và báo giá cụ thể.',
+      'Chi phí đo đạc được tính theo diện tích thửa đất và mức độ phức tạp của công trình. Chúng tôi cung cấp báo giá miễn phí sau khi khảo sát hiện trường. Liên hệ hotline 0905.225.968 để được tư vấn và báo giá cụ thể.',
   },
   {
     question: 'Cần chuẩn bị những giấy tờ gì để đo đất?',

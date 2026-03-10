@@ -147,6 +147,7 @@ CREATE POLICY "Enable delete for admins only" ON projects
 CREATE TABLE IF NOT EXISTS land_parcels (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  owner_name TEXT,               -- Tên chủ sử dụng đất
   parcel_number TEXT,
   map_sheet_number TEXT,
   area NUMERIC,

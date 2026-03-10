@@ -80,7 +80,7 @@ export default function Hero() {
               <ChevronRight className="w-5 h-5" />
             </button>
             <a
-              href="tel:0905123456"
+              href="tel:0905225968"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-semibold px-8 py-4 rounded-xl transition-all duration-300 backdrop-blur-sm border border-white/20 min-h-[56px]"
             >
               <Phone className="w-5 h-5" />
@@ -98,10 +98,10 @@ export default function Hero() {
             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
               <p className="text-blue-200 text-sm mb-2">Hotline 24/7</p>
               <a
-                href="tel:0905123456"
+                href="tel:0905225968"
                 className="text-3xl sm:text-4xl font-bold font-heading text-accent hover:text-white transition-colors"
               >
-                0905.123.456
+                0905.225.968
               </a>
             </div>
           </motion.div>

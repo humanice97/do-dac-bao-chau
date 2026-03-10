@@ -16,9 +16,10 @@ export default function Footer() {
             transition={{ duration: 0.6 }}
             className="lg:col-span-2"
           >
-            <h3 className="text-white font-bold font-heading text-2xl mb-4">
-              Bảo Châu Survey
+            <h3 className="text-white font-bold font-heading text-2xl mb-1">
+              Hà Nam Thành
             </h3>
+            <p className="text-gray-400 text-sm mb-4">Công Ty TNHH Đo đạc - XD - TM Hà Nam Thành</p>
             <p className="text-gray-400 mb-6 leading-relaxed max-w-md">
               Đơn vị chuyên cung cấp dịch vụ đo đạc địa chính, làm sổ đỏ, tách thửa tại Đà Nẵng.
               Với đội ngũ kỹ sư chuyên nghiệp và 5+ năm kinh nghiệm.
@@ -52,11 +53,11 @@ export default function Footer() {
             <ul className="space-y-3">
               <li>
                 <a
-                  href="tel:0905123456"
+                  href="tel:0905225968"
                   className="flex items-center gap-3 text-gray-400 hover:text-accent transition-colors"
                 >
                   <Phone className="w-4 h-4" />
-                  <span>0905.123.456</span>
+                  <span>0905.225.968</span>
                 </a>
               </li>
               <li>
@@ -70,7 +71,7 @@ export default function Footer() {
               </li>
               <li className="flex items-start gap-3 text-gray-400">
                 <MapPin className="w-4 h-4 mt-1 flex-shrink-0" />
-                <span>Đà Nẵng, Việt Nam</span>
+                <span>Số 33, đường Trần Phú, phường Điện Bàn Bắc, TP Đà Nẵng</span>
               </li>
               <li className="flex items-center gap-3 text-gray-400">
                 <Clock className="w-4 h-4" />
@@ -116,7 +117,7 @@ export default function Footer() {
         <div className="border-t border-gray-800 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-gray-500 text-sm text-center md:text-left">
-              © 2025 Bảo Châu Survey. All rights reserved.
+              © 2025 Công Ty TNHH Đo đạc - XD - TM Hà Nam Thành. All rights reserved.
             </p>
             <div className="flex items-center gap-6 text-sm text-gray-500">
               <a href="#" className="hover:text-white transition-colors">

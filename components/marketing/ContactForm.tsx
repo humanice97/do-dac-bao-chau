@@ -62,10 +62,10 @@ export default function ContactForm() {
             <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
               <p className="text-gray-400 text-sm mb-2">Hotline 24/7</p>
               <a
-                href="tel:0905123456"
+                href="tel:0905225968"
                 className="text-4xl sm:text-5xl font-bold font-heading text-accent hover:text-white transition-colors block mb-4"
               >
-                0905.123.456
+                0905.225.968
               </a>
               <div className="flex items-center gap-2 text-gray-500">
                 <MapPin className="w-4 h-4" />

@@ -85,7 +85,7 @@ export default function AdminSidebar() {
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">BCMS</span>
-                    <span className="truncate text-xs">Bảo Châu Management</span>
+                    <span className="truncate text-xs">Hà Nam Thành Management</span>
                   </div>
                   <ChevronsUpDown className="ml-auto size-4" />
                 </SidebarMenuButton>
@@ -96,7 +96,7 @@ export default function AdminSidebar() {
                   <div className="flex size-6 items-center justify-center rounded-sm border">
                     <Building2 className="size-4 shrink-0" />
                   </div>
-                  Bảo Châu Management
+                  Hà Nam Thành Management
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

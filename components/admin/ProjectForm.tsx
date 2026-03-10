@@ -72,6 +72,7 @@ export default function ProjectForm({ isOpen, onClose, onSuccess, editingProject
 
   const [drawingFile, setDrawingFile] = useState<File | null>(null)
   const [landParcel, setLandParcel] = useState<Partial<LandParcel>>({
+    owner_name: '',
     parcel_number: '',
     map_sheet_number: '',
     area: 0,
@@ -152,6 +153,7 @@ export default function ProjectForm({ isOpen, onClose, onSuccess, editingProject
       setDrawingFile(null)
       setRemoveExistingDrawing(false)
       setLandParcel({
+        owner_name: '',
         parcel_number: '',
         map_sheet_number: '',
         area: 0,
@@ -173,6 +175,7 @@ export default function ProjectForm({ isOpen, onClose, onSuccess, editingProject
       setLandParcel(data)
     } else {
       setLandParcel({
+        owner_name: '',
         parcel_number: '',
         map_sheet_number: '',
         area: 0,
@@ -267,6 +270,7 @@ export default function ProjectForm({ isOpen, onClose, onSuccess, editingProject
         ...formData,
         address: finalAddress,
         drawing_url: drawingUrl,
+        engineer_id: formData.engineer_id || null,
       }
 
       let projectId = editingProject?.id
@@ -590,6 +594,19 @@ export default function ProjectForm({ isOpen, onClose, onSuccess, editingProject
               </div>
 
               <div className="relative bg-gray-50/50 p-4 rounded-xl border border-gray-100">
+                <div className="mb-3 sm:mb-4">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Tên chủ sử dụng đất</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                      type="text"
+                      value={landParcel.owner_name || ''}
+                      onChange={(e) => handleParcelChange('owner_name', e.target.value)}
+                      className="bg-white h-9 pl-9"
+                      placeholder="Nhập tên chủ sử dụng đất"
+                    />
+                  </div>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mt-2 sm:mt-0">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Số thửa</label>

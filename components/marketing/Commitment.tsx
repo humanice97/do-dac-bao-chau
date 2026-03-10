@@ -40,7 +40,7 @@ export default function Commitment() {
               Chúng tôi cam kết mang đến dịch vụ tốt nhất
             </h2>
             <p className="text-blue-100 text-lg mb-8 leading-relaxed">
-              Với phương châm "Uy tín – Chính xác – Nhanh chóng", Bảo Châu Survey cam kết đồng hành
+              Với phương châm "Uy tín – Chính xác – Nhanh chóng", Hà Nam Thành cam kết đồng hành
               cùng khách hàng trong mọi thủ tục đo đạc.
             </p>
             <a
