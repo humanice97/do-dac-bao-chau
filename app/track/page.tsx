@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, Building2, Clock, XCircle, FileCheck, Award,
@@ -36,6 +36,23 @@ export default function TrackPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError]         = useState('')
   const [searched, setSearched]   = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+
+  const getFileType = (url: string) => {
+    const lower = url.split('?')[0].toLowerCase()
+    if (lower.endsWith('.pdf')) return 'pdf'
+    if (lower.match(/\.(png|jpg|jpeg|gif|webp|bmp|svg)$/)) return 'image'
+    return 'other'
+  }
+
+  useEffect(() => {
+    if (previewUrl) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [previewUrl])
 
   const supabase = createClient()
 
@@ -51,7 +68,7 @@ export default function TrackPage() {
         .from('projects')
         .select(`
           id, code, customer_name, customer_phone, address, service_type,
-          received_date, result_date, status, start_date, drawing_url,
+          received_date, result_date, status, start_date, drawing_url, dgn_url,
           land_parcels (
             owner_name, parcel_number, map_sheet_number,
             area, floor_area, land_type, address, address_commune_ward, address_district_city
@@ -326,25 +343,27 @@ export default function TrackPage() {
                 )}
 
                 {/* File actions */}
-                {project.drawing_url && (
-                  <div className="flex gap-3">
-                    <a
-                      href={project.drawing_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary/10 hover:bg-primary/20 text-primary font-medium rounded-xl transition-colors text-sm"
-                    >
-                      <Eye className="w-4 h-4" />
-                      Xem trước
-                    </a>
-                    <a
-                      href={project.drawing_url}
-                      download
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-accent/10 hover:bg-accent/20 text-accent font-medium rounded-xl transition-colors text-sm"
-                    >
-                      <Download className="w-4 h-4" />
-                      Tải xuống
-                    </a>
+                {(project.drawing_url || project.dgn_url) && (
+                  <div className="flex gap-2 flex-wrap">
+                    {project.drawing_url && (
+                      <button
+                        onClick={() => setPreviewUrl(project.drawing_url)}
+                        className="flex-1 min-w-[130px] flex items-center justify-center gap-2 px-4 py-2.5 bg-primary/10 hover:bg-primary/20 text-primary font-medium rounded-xl transition-colors text-sm"
+                      >
+                        <Eye className="w-4 h-4" />
+                        Xem PDF
+                      </button>
+                    )}
+                    {project.dgn_url && (
+                      <a
+                        href={project.dgn_url}
+                        download
+                        className="flex-1 min-w-[130px] flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium rounded-xl transition-colors text-sm border border-emerald-200"
+                      >
+                        <Download className="w-4 h-4" />
+                        Tải DGN
+                      </a>
+                    )}
                   </div>
                 )}
               </motion.div>
@@ -362,6 +381,74 @@ export default function TrackPage() {
           © 2025 Hà Nam Thành. Hotline: 0905.225.968
         </motion.p>
       </div>
+
+      {/* Preview Modal */}
+      <AnimatePresence>
+        {previewUrl && (
+          <motion.div
+            key="preview-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex flex-col bg-black/80 backdrop-blur-sm"
+            onClick={(e) => { if (e.target === e.currentTarget) setPreviewUrl(null) }}
+          >
+            {/* Modal toolbar */}
+            <div className="flex items-center justify-between px-4 py-3 bg-gray-900/90 shrink-0">
+              <span className="text-white font-medium text-sm">Xem trước bản vẽ</span>
+              <div className="flex items-center gap-2">
+                <a
+                  href={previewUrl}
+                  download
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  Tải xuống
+                </a>
+                <button
+                  onClick={() => setPreviewUrl(null)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg transition-colors"
+                >
+                  <XCircle className="w-4 h-4" />
+                  Đóng
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-auto flex items-start justify-center p-4">
+              {getFileType(previewUrl) === 'image' ? (
+                <img
+                  src={previewUrl}
+                  alt="Bản vẽ"
+                  className="max-w-full rounded-lg shadow-2xl object-contain"
+                  style={{ maxHeight: 'calc(100vh - 80px)' }}
+                />
+              ) : getFileType(previewUrl) === 'pdf' ? (
+                <iframe
+                  src={previewUrl}
+                  className="w-full rounded-lg shadow-2xl"
+                  style={{ height: 'calc(100vh - 80px)', minWidth: '320px' }}
+                  title="Xem trước bản vẽ"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-4 mt-20 text-white">
+                  <FileText className="w-16 h-16 text-white/40" />
+                  <p className="text-white/70 text-sm">Không thể xem trước loại file này.</p>
+                  <a
+                    href={previewUrl}
+                    download
+                    className="flex items-center gap-2 px-4 py-2.5 bg-accent hover:bg-orange-600 text-white rounded-xl transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    Tải xuống
+                  </a>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

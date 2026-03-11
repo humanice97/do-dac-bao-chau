@@ -26,6 +26,7 @@ export type Project = {
   payment_status: string
   notes: string
   drawing_url: string | null
+  dgn_url: string | null
   created_at: string
 }
 

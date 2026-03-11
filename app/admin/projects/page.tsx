@@ -343,18 +343,30 @@ export default function ProjectsPage() {
                     {getEngineerName(project.engineer_id)}
                   </TableCell>
                   <TableCell className="py-4 px-4 text-gray-600">
-                    {project.drawing_url ? (
-                      <a
-                        href={project.drawing_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 hover:shadow-sm border border-primary/10 transition-all whitespace-nowrap"
-                      >
-                        File PDF
-                      </a>
-                    ) : (
-                      <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded border border-gray-100">Chưa có</span>
-                    )}
+                    <div className="flex flex-col gap-1">
+                      {project.drawing_url ? (
+                        <a
+                          href={project.drawing_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 border border-primary/10 transition-all whitespace-nowrap"
+                        >
+                          PDF
+                        </a>
+                      ) : null}
+                      {(project as any).dgn_url ? (
+                        <a
+                          href={(project as any).dgn_url}
+                          download
+                          className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-all whitespace-nowrap"
+                        >
+                          DGN
+                        </a>
+                      ) : null}
+                      {!project.drawing_url && !(project as any).dgn_url && (
+                        <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded border border-gray-100">Chưa có</span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="py-4 px-4 font-medium whitespace-nowrap">
                     {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(project.total_price || 0)}

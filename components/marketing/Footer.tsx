@@ -62,11 +62,11 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="mailto:contact@baochau.com"
+                  href="mailto:contact@hanamthanh.com"
                   className="flex items-center gap-3 text-gray-400 hover:text-accent transition-colors"
                 >
                   <Mail className="w-4 h-4" />
-                  <span>contact@baochau.com</span>
+                  <span>contact@hanamthanh.com</span>
                 </a>
               </li>
               <li className="flex items-start gap-3 text-gray-400">

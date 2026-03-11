@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { format, parseISO } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { X, User, Phone, MapPin, FileText, DollarSign, Calendar as CalendarIcon, UserCircle, Layers, Activity, FileCheck, UploadCloud, Trash2 } from 'lucide-react'
+import { X, User, Phone, MapPin, FileText, DollarSign, Calendar as CalendarIcon, UserCircle, Layers, FileCheck, UploadCloud, Trash2, Activity } from 'lucide-react'
 import { createClient, Project, Engineer, LandParcel } from '@/lib/supabase'
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
@@ -70,7 +70,8 @@ export default function ProjectForm({ isOpen, onClose, onSuccess, editingProject
   const [provinces, setProvinces] = useState<any[]>([])
   const [wards, setWards] = useState<any[]>([])
 
-  const [drawingFile, setDrawingFile] = useState<File | null>(null)
+  const [pdfFile, setPdfFile] = useState<File | null>(null)
+  const [dgnFile, setDgnFile] = useState<File | null>(null)
   const [landParcel, setLandParcel] = useState<Partial<LandParcel>>({
     owner_name: '',
     parcel_number: '',
@@ -82,8 +83,10 @@ export default function ProjectForm({ isOpen, onClose, onSuccess, editingProject
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-  const [fileError, setFileError] = useState('')
-  const [removeExistingDrawing, setRemoveExistingDrawing] = useState(false)
+  const [pdfFileError, setPdfFileError] = useState('')
+  const [dgnFileError, setDgnFileError] = useState('')
+  const [removePdf, setRemovePdf] = useState(false)
+  const [removeDgn, setRemoveDgn] = useState(false)
 
   const supabase = createClient()
 
@@ -127,7 +130,8 @@ export default function ProjectForm({ isOpen, onClose, onSuccess, editingProject
       setAddressDetail(editingProject.address || '')
       setProvinceCode('')
       setWardCode('')
-      setDrawingFile(null)
+      setPdfFile(null)
+      setDgnFile(null)
       fetchLandParcel(editingProject.id)
     } else {
       const today = new Date().toISOString().split('T')[0]
@@ -150,8 +154,10 @@ export default function ProjectForm({ isOpen, onClose, onSuccess, editingProject
       setAddressDetail('')
       setProvinceCode('')
       setWardCode('')
-      setDrawingFile(null)
-      setRemoveExistingDrawing(false)
+      setPdfFile(null)
+      setDgnFile(null)
+      setRemovePdf(false)
+      setRemoveDgn(false)
       setLandParcel({
         owner_name: '',
         parcel_number: '',
@@ -226,8 +232,8 @@ export default function ProjectForm({ isOpen, onClose, onSuccess, editingProject
   const handleParcelChange = (field: keyof LandParcel, value: string | number) => {
     setLandParcel(prev => {
       const updated = { ...prev, [field]: value }
-      const ward      = field === 'address_commune_ward' ? (value as string) : (prev.address_commune_ward || '')
-      const area      = field === 'area'       ? (value as number) : (prev.area || 0)
+      const ward = field === 'address_commune_ward' ? (value as string) : (prev.address_commune_ward || '')
+      const area = field === 'area' ? (value as number) : (prev.area || 0)
       const floorArea = field === 'floor_area' ? (value as number) : (prev.floor_area || 0)
       const price = calculateTotalPrice(ward, area, floorArea)
       if (price !== null) {
@@ -250,62 +256,62 @@ export default function ProjectForm({ isOpen, onClose, onSuccess, editingProject
     }))
   }
 
+  // Helper: upload một file lên storage và trả về public URL
+  const uploadFile = async (file: File, folder: string): Promise<string> => {
+    const fileExt = file.name.split('.').pop()?.toLowerCase() || ''
+    const originalName = file.name.substring(0, file.name.lastIndexOf('.')) || 'file'
+    const safeName = originalName.replace(/[^a-zA-Z0-9-]/g, '-')
+    const fileName = `${safeName}-${Date.now()}.${fileExt}`
+    const filePath = `${folder}/${fileName}`
+    const contentType = fileExt === 'pdf' ? 'application/pdf' : 'application/octet-stream'
+
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('project-drawings')
+      .upload(filePath, file, { cacheControl: '3600', upsert: false, contentType })
+
+    if (uploadError) throw uploadError
+
+    const { data: urlData } = supabase.storage.from('project-drawings').getPublicUrl(uploadData.path)
+    return urlData.publicUrl
+  }
+
+  // Helper: xóa file từ storage theo URL
+  const deleteFileByUrl = async (url: string) => {
+    try {
+      const urlParts = url.split('/project-drawings/')
+      if (urlParts.length > 1) {
+        await supabase.storage.from('project-drawings').remove([urlParts[1]])
+      }
+    } catch (err) {
+      console.error('Error deleting file from storage:', err)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError('')
-    setFileError('')
+    setPdfFileError('')
+    setDgnFileError('')
 
     try {
       let drawingUrl = editingProject?.drawing_url || null
+      let dgnUrl = (editingProject as any)?.dgn_url || null
 
-      // Xóa file cũ khỏi Storage nếu user chọn xóa HOẶC nếu user đang thay thế bằng một file mới
-      if (drawingUrl && (removeExistingDrawing || drawingFile)) {
-        try {
-          // Lấy path tương đối của file từ public URL đầy đủ
-          const urlParts = drawingUrl.split('/project-drawings/')
-          if (urlParts.length > 1) {
-            const oldFilePath = urlParts[1]
-            await supabase.storage.from('project-drawings').remove([oldFilePath])
-          }
-        } catch (err) {
-          console.error('Error deleting old file from storage:', err)
-          // Có lỗi xóa file cũ trên storage thì cũng không throw catch để chặn tiến trình update database
-        }
+      // Xử lý PDF
+      if (editingProject?.drawing_url && (removePdf || pdfFile)) {
+        await deleteFileByUrl(editingProject.drawing_url)
       }
+      if (removePdf && !pdfFile) drawingUrl = null
+      if (pdfFile) drawingUrl = await uploadFile(pdfFile, 'drawings')
 
-      if (removeExistingDrawing && !drawingFile) {
-        // Nếu user chọn xóa file mặt định và không up file mới
-        drawingUrl = null
+      // Xử lý DGN
+      const existingDgn = (editingProject as any)?.dgn_url
+      if (existingDgn && (removeDgn || dgnFile)) {
+        await deleteFileByUrl(existingDgn)
       }
-
-      // Upload PDF/DGN bản vẽ nếu có file mới được chọn
-      if (drawingFile) {
-        const fileExt = drawingFile.name.split('.').pop()?.toLowerCase() || ''
-        const originalName = drawingFile.name.substring(0, drawingFile.name.lastIndexOf('.')) || 'drawing'
-        // Thay thế các ký tự đặc biệt và khoảng trắng bằng gạch nối để link thân thiện hơn
-        const safeName = originalName.replace(/[^a-zA-Z0-9-]/g, '-')
-        const fileName = `${safeName}-${Date.now()}.${fileExt}`
-        const filePath = `drawings/${fileName}`
-
-        const contentType = fileExt === 'pdf' ? 'application/pdf' : 'application/octet-stream'
-
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('project-drawings')
-          .upload(filePath, drawingFile, {
-            cacheControl: '3600',
-            upsert: false,
-            contentType: contentType,
-          })
-
-        if (uploadError) throw uploadError
-
-        const { data: publicUrlData } = supabase.storage
-          .from('project-drawings')
-          .getPublicUrl(uploadData.path)
-
-        drawingUrl = publicUrlData.publicUrl
-      }
+      if (removeDgn && !dgnFile) dgnUrl = null
+      if (dgnFile) dgnUrl = await uploadFile(dgnFile, 'drawings')
 
       const provName = provinces.find(p => p.code === Number(provinceCode))?.name || ''
       const wardName = wards.find(w => w.code === Number(wardCode))?.name || ''
@@ -317,6 +323,7 @@ export default function ProjectForm({ isOpen, onClose, onSuccess, editingProject
         ...formData,
         address: finalAddress,
         drawing_url: drawingUrl,
+        dgn_url: dgnUrl,
         engineer_id: formData.engineer_id || null,
       }
 
@@ -717,111 +724,168 @@ export default function ProjectForm({ isOpen, onClose, onSuccess, editingProject
               </div>
             </div>
 
-            {/* Upload bản vẽ PDF/DGN */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Bản vẽ (PDF hoặc DGN) <span className="text-gray-400 font-normal ml-1">(Tối đa 1MB)</span>
-              </label>
+            {/* Upload bản vẽ */}
+            <div className="border-t border-gray-100 pt-6">
+              <h3 className="text-sm font-semibold text-gray-700 mb-4">File bản vẽ <span className="text-gray-400 font-normal">(Tối đa 1MB mỗi file)</span></h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-              <div className={`relative border-2 border-dashed rounded-xl p-6 transition-all ${fileError ? 'border-red-400 bg-red-50' :
-                drawingFile ? 'border-primary/50 bg-primary/5' :
-                  'border-gray-300 hover:border-primary/50 hover:bg-gray-50 bg-white'
-                }`}>
-                <input
-                  type="file"
-                  id="file-upload"
-                  accept=".pdf,.dgn"
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null
-                    if (file && file.size > 1024 * 1024) {
-                      setFileError('Dung lượng file tải lên không được vượt quá 1MB')
-                      e.target.value = ''
-                      setDrawingFile(null)
-                      return
-                    }
-                    setFileError('')
-                    setDrawingFile(file)
-                  }}
-                />
-
-                <div className="flex flex-col items-center justify-center text-center space-y-3 pointer-events-none">
-                  {drawingFile ? (
-                    <>
-                      <div className="p-3 bg-primary/10 rounded-full">
-                        <FileCheck className="w-8 h-8 text-primary" />
+                {/* ── PDF ── */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-2 flex items-center gap-1.5">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded bg-primary/10 text-primary text-[11px] font-semibold">PDF</span>
+                    File PDF bản vẽ
+                  </label>
+                  <div className={`relative border-2 border-dashed rounded-xl p-4 transition-all ${pdfFileError ? 'border-red-400 bg-red-50' :
+                    pdfFile ? 'border-primary/50 bg-primary/5' :
+                      'border-gray-300 hover:border-primary/50 hover:bg-gray-50 bg-white'
+                    }`}>
+                    <input
+                      type="file"
+                      id="pdf-upload"
+                      accept=".pdf"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null
+                        if (file && file.size > 1024 * 1024) {
+                          setPdfFileError('File PDF không được vượt quá 1MB')
+                          e.target.value = ''
+                          setPdfFile(null)
+                          return
+                        }
+                        setPdfFileError('')
+                        setPdfFile(file)
+                        if (file) setRemovePdf(false)
+                      }}
+                    />
+                    <div className="flex flex-col items-center justify-center text-center space-y-2 pointer-events-none">
+                      {pdfFile ? (
+                        <>
+                          <div className="p-2 bg-primary/10 rounded-full">
+                            <FileCheck className="w-6 h-6 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-gray-900 line-clamp-1">{pdfFile.name}</p>
+                            <p className="text-xs text-gray-500">{(pdfFile.size / 1024).toFixed(1)} KB</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.preventDefault(); setPdfFile(null); (document.getElementById('pdf-upload') as HTMLInputElement).value = '' }}
+                            className="absolute top-2 right-2 p-1 bg-gray-100/80 hover:bg-red-100 hover:text-red-500 text-gray-500 rounded-full transition-colors pointer-events-auto"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <div className="p-2 bg-gray-100 rounded-full">
+                            <UploadCloud className={`w-6 h-6 ${pdfFileError ? 'text-red-500' : 'text-gray-400'}`} />
+                          </div>
+                          <p className="text-xs text-gray-600"><span className="text-primary font-medium">Bấm</span> hoặc kéo thả .pdf</p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  {pdfFileError && <p className="text-xs text-red-500 mt-1">{pdfFileError}</p>}
+                  {editingProject?.drawing_url && !pdfFile && (
+                    <div className="mt-2 flex items-center justify-between p-2.5 bg-gray-50 border border-gray-100 rounded-lg text-xs">
+                      <div className="flex items-center gap-1.5 overflow-hidden">
+                        <FileCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                        {removePdf
+                          ? <span className="text-red-500 line-through opacity-60">Đã đánh dấu xóa</span>
+                          : <a href={editingProject.drawing_url!} target="_blank" rel="noreferrer" className="text-primary hover:underline truncate font-medium">File PDF hiện tại</a>
+                        }
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900 line-clamp-1">{drawingFile.name}</p>
-                        <p className="text-xs text-gray-500 mt-1">{(drawingFile.size / 1024).toFixed(1)} KB</p>
-                      </div>
-
-                      {/* Nút Xóa File Đang Chọn (absolute) */}
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          setDrawingFile(null)
-                          const fileInput = document.getElementById('file-upload') as HTMLInputElement
-                          if (fileInput) fileInput.value = ''
-                        }}
-                        className="absolute top-3 right-3 p-1.5 bg-gray-100/80 hover:bg-red-100 hover:text-red-500 text-gray-500 rounded-full transition-colors pointer-events-auto"
-                        title="Hủy chọn file này"
+                        onClick={() => setRemovePdf(!removePdf)}
+                        className={`ml-2 shrink-0 flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded transition-colors ${removePdf ? 'bg-gray-200 text-gray-700' : 'bg-red-50 text-red-600 hover:bg-red-100'
+                          }`}
                       >
-                        <X className="w-4 h-4" />
+                        {removePdf ? 'Hoàn tác' : <><Trash2 className="w-3 h-3" /> Xóa</>}
                       </button>
-                    </>
-                  ) : (
-                    <>
-                      <div className="p-3 bg-gray-100 rounded-full group-hover:bg-white transition-colors">
-                        <UploadCloud className={`w-8 h-8 ${fileError ? 'text-red-500' : 'text-gray-400'}`} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">
-                          <span className="text-primary hover:underline group-hover:text-primary">Bấm để chọn</span> hoặc kéo thả file
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">Hỗ trợ định dạng PDF hoặc DGN</p>
-                      </div>
-                    </>
+                    </div>
                   )}
                 </div>
-              </div>
 
-              {fileError && (
-                <p className="text-sm text-red-500 mt-2 font-medium flex items-center gap-1">
-                  <Activity className="w-4 h-4" /> {fileError}
-                </p>
-              )}
-
-              {/* Box hiện thông báo file cũ đã upload */}
-              {editingProject?.drawing_url && !drawingFile && (
-                <div className="mt-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg shadow-sm">
-                  <div className="flex items-center gap-2 overflow-hidden text-sm">
-                    <FileCheck className="w-4 h-4 text-emerald-500 shrink-0" />
-                    {removeExistingDrawing ? (
-                      <span className="text-red-500 line-through truncate opacity-60">Đã lưu lệnh xóa file cũ</span>
-                    ) : (
-                      <span className="text-gray-600 truncate">
-                        File hiện tại: <a href={editingProject.drawing_url} target="_blank" rel="noreferrer" className="text-primary hover:underline font-medium">Bản_Vẽ.pdf/dgn</a>
-                      </span>
-                    )}
+                {/* ── DGN ── */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-2 flex items-center gap-1.5">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[11px] font-semibold">DGN</span>
+                    File DGN bản vẽ
+                  </label>
+                  <div className={`relative border-2 border-dashed rounded-xl p-4 transition-all ${dgnFileError ? 'border-red-400 bg-red-50' :
+                    dgnFile ? 'border-emerald-400/60 bg-emerald-50/40' :
+                      'border-gray-300 hover:border-emerald-400/50 hover:bg-gray-50 bg-white'
+                    }`}>
+                    <input
+                      type="file"
+                      id="dgn-upload"
+                      accept=".dgn"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null
+                        if (file && file.size > 1024 * 1024) {
+                          setDgnFileError('File DGN không được vượt quá 1MB')
+                          e.target.value = ''
+                          setDgnFile(null)
+                          return
+                        }
+                        setDgnFileError('')
+                        setDgnFile(file)
+                        if (file) setRemoveDgn(false)
+                      }}
+                    />
+                    <div className="flex flex-col items-center justify-center text-center space-y-2 pointer-events-none">
+                      {dgnFile ? (
+                        <>
+                          <div className="p-2 bg-emerald-100 rounded-full">
+                            <FileCheck className="w-6 h-6 text-emerald-600" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-gray-900 line-clamp-1">{dgnFile.name}</p>
+                            <p className="text-xs text-gray-500">{(dgnFile.size / 1024).toFixed(1)} KB</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.preventDefault(); setDgnFile(null); (document.getElementById('dgn-upload') as HTMLInputElement).value = '' }}
+                            className="absolute top-2 right-2 p-1 bg-gray-100/80 hover:bg-red-100 hover:text-red-500 text-gray-500 rounded-full transition-colors pointer-events-auto"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <div className="p-2 bg-gray-100 rounded-full">
+                            <UploadCloud className={`w-6 h-6 ${dgnFileError ? 'text-red-500' : 'text-gray-400'}`} />
+                          </div>
+                          <p className="text-xs text-gray-600"><span className="text-emerald-600 font-medium">Bấm</span> hoặc kéo thả .dgn</p>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setRemoveExistingDrawing(!removeExistingDrawing)}
-                    className={`ml-3 shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${removeExistingDrawing
-                      ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                      : 'bg-red-50 text-red-600 hover:bg-red-100'
-                      }`}
-                  >
-                    {removeExistingDrawing ? (
-                      'Hoàn tác'
-                    ) : (
-                      <><Trash2 className="w-3.5 h-3.5" /> Xóa file</>
-                    )}
-                  </button>
+                  {dgnFileError && <p className="text-xs text-red-500 mt-1">{dgnFileError}</p>}
+                  {(editingProject as any)?.dgn_url && !dgnFile && (
+                    <div className="mt-2 flex items-center justify-between p-2.5 bg-gray-50 border border-gray-100 rounded-lg text-xs">
+                      <div className="flex items-center gap-1.5 overflow-hidden">
+                        <FileCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                        {removeDgn
+                          ? <span className="text-red-500 line-through opacity-60">Đã đánh dấu xóa</span>
+                          : <a href={(editingProject as any).dgn_url} download className="text-emerald-600 hover:underline truncate font-medium">File DGN hiện tại</a>
+                        }
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setRemoveDgn(!removeDgn)}
+                        className={`ml-2 shrink-0 flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded transition-colors ${removeDgn ? 'bg-gray-200 text-gray-700' : 'bg-red-50 text-red-600 hover:bg-red-100'
+                          }`}
+                      >
+                        {removeDgn ? 'Hoàn tác' : <><Trash2 className="w-3 h-3" /> Xóa</>}
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
+
+              </div>
             </div>
 
             {/* Tổng giá */}
