@@ -196,7 +196,7 @@ export default function ReviewingPage() {
             const values = [
                 i + 1,
                 '',
-                p.customer_name,
+                parcel?.owner_name ?? '',
                 parcel?.address_commune_ward ?? '',
                 parcel?.map_sheet_number ?? '',
                 parcel?.parcel_number ?? '',
@@ -410,8 +410,7 @@ export default function ReviewingPage() {
                                                 <TableRow key={p.id} className="hover:bg-gray-50/50 transition-colors">
                                                     <TableCell className="py-4 px-3 text-center text-gray-500">{i + 1}</TableCell>
                                                     <TableCell className="py-4 px-4">
-                                                        <p className="font-medium text-secondary">{p.customer_name}</p>
-                                                        <p className="text-xs text-gray-400">{p.customer_phone}</p>
+                                                        <p className="font-medium text-secondary">{parcel?.owner_name ?? '—'}</p>
                                                     </TableCell>
                                                     <TableCell className="py-3 px-3 bg-indigo-50/30 text-gray-700 text-sm">{parcel?.address_commune_ward ?? '—'}</TableCell>
                                                     <TableCell className="py-3 px-3 text-center bg-indigo-50/30 text-gray-700">{parcel?.map_sheet_number ?? '—'}</TableCell>
